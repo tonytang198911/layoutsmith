@@ -14,7 +14,8 @@
     loading: false,
     editConfig: false,
     poll: 0,
-    error: ''
+    error: '',
+    boardError: ''
   };
 
   function $(id) { return document.getElementById(id); }
@@ -157,10 +158,17 @@
       boardSelect.disabled = !state.boards.length || state.tab === 'boards';
     }
     var board = state.boards.filter(function (b) { return b.id === state.boardId; })[0];
-    setText('pin-board-meta', board ? (board.pin_count + ' 个 Pin') : (state.boards.length ? '选择一个 Board' : '这个账号还没有 Board'));
+    setText('pin-board-meta', board ? (board.pin_count + ' 个 Pin') : (state.boards.length ? '选择一个 Board' : (state.boardError ? 'Pinterest 返回错误' : '这个账号还没有 Board')));
     var grid = $('pin-grid');
     var empty = $('pin-empty');
     if (!grid || !empty) return;
+    if (state.boardError && !state.loading) {
+      show('pin-empty', true);
+      empty.innerHTML = '<b style="color:#a52218">Pinterest 没有返回数据</b><br>' + esc(state.boardError) +
+        '<br><span style="font-size:12px">如果是 Trial access 审核中，等审核通过后再点刷新；也可以在下方“应用设置”里更换 Token。</span>';
+      grid.innerHTML = '';
+      return;
+    }
     if (state.tab === 'boards') {
       show('pin-empty', !state.boards.length && !state.loading);
       empty.textContent = state.boards.length ? '' : '没有找到 Board。确认授权时选择了 Boards 权限。';
@@ -197,6 +205,7 @@
     renderBrowser();
     api('/api/pinterest/boards').then(function (data) {
       state.boards = Array.isArray(data.boards) ? data.boards : [];
+      state.boardError = '';
       state.loading = false;
       if (!state.boards.some(function (b) { return b.id === state.boardId; })) {
         state.boardId = state.boards[0] ? state.boards[0].id : '';
@@ -206,6 +215,7 @@
     }).catch(function (err) {
       state.loading = false;
       state.error = err.message || String(err);
+      state.boardError = state.error;
       state.boards = [];
       render();
       LS.toast('读取 Pinterest 失败：' + state.error, 'err', 4600);
@@ -225,6 +235,7 @@
         return p;
       });
       state.error = '';
+      state.boardError = '';
       render();
       if (scroll) {
         var body = document.querySelector('.pin-body');
@@ -234,6 +245,7 @@
       state.loading = false;
       state.pins = [];
       state.error = err.message || String(err);
+      state.boardError = state.error;
       render();
       LS.toast('读取 Pinterest Pins 失败：' + state.error, 'err', 4600);
     });
