@@ -128,7 +128,7 @@
       return;
     }
     var kit = S.kit;
-    var assets = S.assets.slice(0, 6);
+    var assets = S.assets.slice();
     var tpls = S.templates.slice(0, 3);
     var colors = kit.colors || [];
     var fonts = kit.fonts || [];
@@ -136,7 +136,8 @@
     var html = '<div class="brand-tab-head"><b>' + esc(kit.name || '我的品牌') + '</b>' +
       '<button class="icon-btn" data-brand-act="manage" title="管理品牌库">' + LS.icon('settings') + '</button></div>';
 
-    html += '<div class="brand-sec"><div class="brand-sec-head"><span class="brand-sec-title">品牌素材</span>' +
+    html += '<div class="brand-sec"><div class="brand-sec-head"><span class="brand-sec-title">品牌素材' +
+      (S.assets.length ? ' · ' + S.assets.length : '') + '</span>' +
       '<span class="mini"><button class="icon-btn" data-brand-act="upload" title="上传素材">' + LS.icon('plus') + '</button>' +
       '<button class="link-btn" data-brand-act="manage">管理</button></span></div>';
     if (assets.length) {
