@@ -1265,3 +1265,10 @@ body.left-resizing *{cursor:col-resize!important}
   .pin-toolbar{flex-wrap:wrap}
   .pin-board-select{max-width:none;flex:1}
 }
+
+/* 画板锁定 */
+.ab-item.ab-locked .ab-thumb{color:#8a5a00;background:#fff7e6;border-color:#f0d9a8}
+.ab-item.ab-locked .ab-meta span{color:#9a6b1a}
+.ab-item .icon-btn.on{color:#b7791f;background:#fff7e6}
+.layer-row.board-locked{opacity:.58}
+.layer-row.board-locked .lname{cursor:not-allowed}

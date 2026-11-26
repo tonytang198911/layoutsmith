@@ -23,7 +23,7 @@
   }
   function abNumField(label, code, val, unit, attrs) {
     return '<label class="field"><span class="field-label">' + label + '</span>' +
-      '<span class="num"><input class="input" data-ab="' + code + '" type="number" step="' + (attrs && attrs.step || 1) + '" value="' + fmt(val, 1) + '">' +
+      '<span class="num"><input class="input" data-ab="' + code + '" type="number" step="' + (attrs && attrs.step || 1) + '" value="' + fmt(val, 1) + '"' + (attrs && attrs.disabled ? ' disabled' : '') + '>' +
       '<span class="unit">' + (unit || '') + '</span></span></label>';
   }
   function colorField(p, color, extra) {
@@ -164,12 +164,14 @@
     layerListEl.innerHTML = objs.map(function (o, i) {
       var isActive = active.indexOf(o) >= 0;
       var hidden = o.visible === false;
-      var locked = !!o.lsLocked;
-      return '<li class="layer-row' + (isActive ? ' active' : '') + '" draggable="true" data-idx="' + i + '">' +
+      var boardLocked = LS.editor.isBoardLocked ? LS.editor.isBoardLocked(o) : false;
+      var locked = !!o.lsLocked || boardLocked;
+      var lockTitle = boardLocked ? '所在画板已锁定' : (locked ? '解锁' : '锁定');
+      return '<li class="layer-row' + (isActive ? ' active' : '') + (boardLocked ? ' board-locked' : '') + '" draggable="' + (boardLocked ? 'false' : 'true') + '" data-idx="' + i + '">' +
         '<span class="licon">' + icon(typeIcon(o)) + '</span>' +
         '<span class="lname" title="' + esc(o.lsName || typeName(o)) + '">' + esc(o.lsName || typeName(o)) + '</span>' +
         '<button class="lbtn' + (hidden ? ' off' : '') + '" data-lbtn="vis" title="' + (hidden ? '显示' : '隐藏') + '">' + icon(hidden ? 'eye-off' : 'eye') + '</button>' +
-        '<button class="lbtn' + (locked ? ' off' : '') + '" data-lbtn="lock" title="' + (locked ? '解锁' : '锁定') + '">' + icon(locked ? 'lock' : 'unlock') + '</button>' +
+        '<button class="lbtn' + (locked ? ' off' : '') + '" data-lbtn="lock" title="' + lockTitle + '">' + icon(locked ? 'lock' : 'unlock') + '</button>' +
         '</li>';
     }).join('');
   }
@@ -180,10 +182,12 @@
     var activeId = S().activeArtboardId;
     abListEl.innerHTML = abs.map(function (a) {
       var act = a.lsArtboardId === activeId;
-      return '<li class="ab-item' + (act ? ' active' : '') + '" data-abid="' + a.lsArtboardId + '">' +
-        '<span class="ab-thumb">' + icon('frame') + '</span>' +
+      var locked = !!a.lsBoardLocked;
+      return '<li class="ab-item' + (act ? ' active' : '') + (locked ? ' ab-locked' : '') + '" data-abid="' + a.lsArtboardId + '">' +
+        '<span class="ab-thumb">' + icon(locked ? 'lock' : 'frame') + '</span>' +
         '<span class="ab-meta"><b>' + esc(a.lsName || '画板') + '</b>' +
-        '<span>' + fmt(a.width, 0) + ' × ' + fmt(a.height, 0) + ' mm</span></span>' +
+        '<span>' + fmt(a.width, 0) + ' × ' + fmt(a.height, 0) + ' mm' + (locked ? ' · 已锁定' : '') + '</span></span>' +
+        '<button class="icon-btn tiny' + (locked ? ' on' : '') + '" data-abact="lock" title="' + (locked ? '解锁画板' : '锁定画板') + '">' + icon(locked ? 'lock' : 'unlock') + '</button>' +
         '<button class="icon-btn tiny" data-abact="more" title="更多">' + icon('more') + '</button>' +
         '</li>';
     }).join('') + '<button class="ab-item" data-abact="add" style="justify-content:center;color:var(--muted);font-size:12px">' + icon('plus') + ' 新建画板</button>' +
@@ -221,27 +225,31 @@
       var abs = LS.editor.artboards();
       var html = '';
       if (ab) {
-        html += '<div class="sel-head"><span class="badge">' + icon('frame') + '</span>' +
-          '<div class="t"><b>' + esc(ab.lsName || '画板') + '</b><span>画板 · ' + fmt(ab.width, 0) + ' × ' + fmt(ab.height, 0) + ' mm</span></div></div>' +
-          '<div class="psec"><div class="psec-head">' + icon('frame') + '画板设置<span class="right"><button class="link" data-act="fitArtboard">适应视图</button></span></div>' +
-          '<label class="field" style="margin-bottom:8px"><span class="field-label">名称</span><input class="input" data-ab="name" value="' + esc(ab.lsName || '') + '"></label>' +
+        var abLocked = !!ab.lsBoardLocked;
+        html += '<div class="sel-head"><span class="badge">' + icon(abLocked ? 'lock' : 'frame') + '</span>' +
+          '<div class="t"><b>' + esc(ab.lsName || '画板') + '</b><span>画板 · ' + fmt(ab.width, 0) + ' × ' + fmt(ab.height, 0) + ' mm' + (abLocked ? ' · 已锁定' : '') + '</span></div></div>' +
+          '<div class="psec"><div class="psec-head">' + icon(abLocked ? 'lock' : 'frame') + '画板设置<span class="right">' +
+          '<button class="link" data-act="lockArtboard">' + (abLocked ? '解锁画板' : '锁定画板') + '</button>' +
+          '<button class="link" data-act="fitArtboard">适应视图</button></span></div>' +
+          (abLocked ? '<p class="ab-prop-note" style="margin-bottom:8px">画板已锁定：板内图层不可选中、移动或修改，画板也不能拖动。点右上角「解锁画板」恢复。</p>' : '') +
+          '<label class="field" style="margin-bottom:8px"><span class="field-label">名称</span><input class="input" data-ab="name" value="' + esc(ab.lsName || '') + '"' + (abLocked ? ' disabled' : '') + '></label>' +
           '<div class="grid2">' +
-          abNumField('宽', 'w', ab.width, 'mm') +
-          abNumField('高', 'h', ab.height, 'mm') +
-          abNumField('X', 'x', ab.left, 'mm') +
-          abNumField('Y', 'y', ab.top, 'mm') +
+          abNumField('宽', 'w', ab.width, 'mm', { disabled: abLocked }) +
+          abNumField('高', 'h', ab.height, 'mm', { disabled: abLocked }) +
+          abNumField('X', 'x', ab.left, 'mm', { disabled: abLocked }) +
+          abNumField('Y', 'y', ab.top, 'mm', { disabled: abLocked }) +
           '</div>' +
           '<div class="field" style="margin-top:8px"><span class="field-label">底色</span>' +
-          '<div class="color-field"><input type="color" data-ab="fill" value="' + LS.toHex(ab.fill, '#ffffff') + '"><input class="input" data-ab="fillHex" value="' + LS.toHex(ab.fill, '#ffffff') + '"></div></div>' +
+          '<div class="color-field"><input type="color" data-ab="fill" value="' + LS.toHex(ab.fill, '#ffffff') + '"' + (abLocked ? ' disabled' : '') + '><input class="input" data-ab="fillHex" value="' + LS.toHex(ab.fill, '#ffffff') + '"' + (abLocked ? ' disabled' : '') + '></div></div>' +
           '<div class="field" style="margin-top:8px"><span class="field-label">导出 DPI</span>' +
-          '<select class="select" data-ab="dpi">' + [72, 150, 300, 450].map(function (d) { return '<option value="' + d + '"' + (S().dpi === d ? ' selected' : '') + '>' + d + ' DPI</option>'; }).join('') + '</select></div>' +
+          '<select class="select" data-ab="dpi"' + (abLocked ? ' disabled' : '') + '>' + [72, 150, 300, 450].map(function (d) { return '<option value="' + d + '"' + (S().dpi === d ? ' selected' : '') + '>' + d + ' DPI</option>'; }).join('') + '</select></div>' +
           '<div class="grid2" style="margin-top:10px">' +
           '<button class="btn btn-sm" data-act="addArtboard">' + icon('plus') + '新建画板</button>' +
           '<button class="btn btn-sm" data-act="dupArtboard" title="用当前画板尺寸新建一个空画板">' + icon('copy') + '同尺寸新建</button>' +
           '</div>' +
           '<div class="grid2" style="margin-top:6px">' +
           '<button class="btn btn-sm" data-act="exportArtboard">' + icon('download') + '导出此画板</button>' +
-          '<button class="btn btn-sm btn-danger" data-act="delArtboard">' + icon('trash') + '删除画板</button>' +
+          '<button class="btn btn-sm btn-danger" data-act="delArtboard"' + (abLocked ? ' disabled' : '') + '>' + icon('trash') + '删除画板</button>' +
           '</div>' +
           '<p class="ab-prop-note" style="margin-top:8px">共 ' + abs.length + ' 个画板 · 画板外内容不会被导出</p>' +
           '</div>';
@@ -846,6 +854,7 @@
     switch (act) {
       case 'delete': ed.deleteSelection(); break;
       case 'duplicate': ed.duplicateSelection(); break;
+      case 'lockArtboard': { var abL = ed.activeArtboard(); if (abL) ed.toggleArtboardLock(abL.lsArtboardId); renderProps(); break; }
       case 'group': ed.groupSelection(); break;
       case 'ungroup': ed.ungroupSelection(); break;
       case 'flipH': ed.flip('h'); break;
@@ -996,6 +1005,10 @@
     var idx = +row.getAttribute('data-idx');
     var obj = LS.editor.objects().slice().reverse()[idx];
     if (!obj) return;
+    if (LS.editor.isBoardLocked && LS.editor.isBoardLocked(obj)) {
+      LS.toast('所在画板已锁定，先在画板列表解锁', 'warn', 3200);
+      return;
+    }
     if (btn) {
       e.stopPropagation();
       if (btn.getAttribute('data-lbtn') === 'vis') {
@@ -1101,8 +1114,16 @@
       }
       var item = more.closest('.ab-item');
       var id = item.getAttribute('data-abid');
+      if (act === 'lock') {
+        LS.editor.toggleArtboardLock(id);
+        renderArtboards();
+        renderProps();
+        return;
+      }
       var r = more.getBoundingClientRect();
-      LS.menu(r.left - 130, r.bottom + 4, [
+      var rowAb = LS.editor.artboards().filter(function (x) { return x.lsArtboardId === id; })[0];
+      LS.menu(r.left - 160, r.bottom + 4, [
+        { label: rowAb && rowAb.lsBoardLocked ? '解锁画板' : '锁定画板', icon: rowAb && rowAb.lsBoardLocked ? 'unlock' : 'lock', action: function () { LS.editor.toggleArtboardLock(id); renderArtboards(); renderProps(); } },
         { label: '重命名', icon: 'type', action: function () { renameArtboard(id); } },
         { label: '适应视图', icon: 'fit', action: function () { LS.editor.setActiveArtboard(id); LS.editor.fitArtboard(); } },
         { label: '新建同尺寸画板', icon: 'copy', action: function () {
@@ -1115,6 +1136,7 @@
         } },
         { sep: true },
         { label: '删除画板', icon: 'trash', danger: true, action: function () {
+          if (rowAb && rowAb.lsBoardLocked) { LS.toast('画板已锁定，先解锁再删除', 'warn'); return; }
           LS.confirm({ title: '删除画板？', message: '画板上的内容会保留，只是不再导出这一块。', okText: '删除' }).then(function (ok) { if (ok) LS.editor.deleteArtboard(id); });
         } }
       ]);
