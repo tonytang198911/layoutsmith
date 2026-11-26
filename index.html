@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dsh-design" content="web">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f172a'/%3E%3Crect x='7' y='7' width='12' height='12' rx='2' fill='%237ea2ff'/%3E%3Crect x='16' y='17' width='9' height='9' rx='2' fill='%230f8f8e'/%3E%3C/svg%3E">
+<title>排版大师 · Layoutsmith</title>
+<link rel="stylesheet" href="css/app.css?v=79">
+</head>
+<body>
+
+<!-- ══════════════ 首页 · 项目管理 ══════════════ -->
+<div class="screen active" id="screen-home">
+  <header class="home-top">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+      <span class="brand-name">排版大师</span>
+      <span class="brand-sub">LAYOUTSMITH</span>
+    </div>
+    <div class="home-tools">
+      <label class="search">
+        <svg class="i" aria-hidden="true"><use href="#i-search"></use></svg>
+        <input id="search-input" type="search" placeholder="搜索项目" autocomplete="off">
+      </label>
+      <select id="sort-select" class="select select-sm" title="排序">
+        <option value="recent">最近编辑</option>
+        <option value="created">创建时间</option>
+        <option value="name">名称</option>
+      </select>
+      <button class="btn" id="btn-brand" title="品牌素材与模板 (⌘B)"><svg class="i"><use href="#i-brand"></use></svg>品牌库</button>
+      <button class="btn" id="btn-import" title="导入 .lbs.json 项目备份"><svg class="i"><use href="#i-upload"></use></svg>导入</button>
+      <button class="btn btn-primary" id="btn-new">
+        <svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg>新建项目
+      </button>
+    </div>
+  </header>
+
+  <main class="home-main">
+    <div class="home-head">
+      <h1>项目</h1>
+      <span class="count" id="proj-count"></span>
+      <p class="home-note">所有文件保存在这台电脑的浏览器里，不会上传到任何服务器。</p>
+    </div>
+    <div class="project-grid" id="project-grid"></div>
+    <div class="empty hidden" id="home-empty">
+      <div class="empty-art" aria-hidden="true">
+        <svg viewBox="0 0 220 150" fill="none">
+          <rect x="18" y="12" width="184" height="126" rx="10" fill="#fff" stroke="#dbe2ee"/>
+          <rect x="36" y="34" width="148" height="82" rx="4" fill="#f2f6ff" stroke="#c8d6f7"/>
+          <path d="M36 96l32-26 26 20 24-30 34 36v20H36z" fill="#dce6fb"/>
+          <circle cx="146" cy="58" r="9" fill="#c4d4f5"/>
+          <path d="M18 104h184M92 12v126" stroke="#e7ecf5" stroke-dasharray="3 4"/>
+        </svg>
+      </div>
+      <h3>还没有项目</h3>
+      <p>新建一个画板，或先打开示例项目看看。</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn" id="btn-demo">打开示例项目</button>
+        <button class="btn btn-primary" id="btn-new-2"><svg class="i"><use href="#i-plus"></use></svg>新建项目</button>
+      </div>
+    </div>
+  </main>
+  <footer class="home-foot">
+    <span><b>排版大师</b> · 本地排版工作台</span>
+    <span class="foot-keys">
+      <kbd>V</kbd>选择 <kbd>R</kbd>矩形 <kbd>T</kbd>文字 <kbd>空格</kbd>平移
+    </span>
+  </footer>
+</div>
+
+<!-- ══════════════ 编辑器 ══════════════ -->
+<div class="screen" id="screen-editor">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" id="btn-back" title="返回项目列表 (⌘⇧P)">
+        <svg class="i"><use href="#i-chevron-left"></use></svg>
+      </button>
+      <span class="brand-mark sm" aria-hidden="true"><i></i><i></i></span>
+      <input class="proj-name" id="proj-name" value="未命名项目" spellcheck="false" autocomplete="off">
+      <span class="save-state" id="save-state"><i class="dot"></i><span>已保存</span></span>
+    </div>
+    <div class="topbar-mid">
+      <span id="ab-info" class="ab-info">— × — mm</span>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="btn-undo" title="撤销 (⌘Z)" disabled><svg class="i"><use href="#i-undo"></use></svg></button>
+      <button class="icon-btn" id="btn-redo" title="重做 (⇧⌘Z)" disabled><svg class="i"><use href="#i-redo"></use></svg></button>
+      <span class="vsep"></span>
+      <button class="icon-btn toggle" id="btn-props-toggle" title="显示 / 隐藏属性面板"><svg class="i"><use href="#i-panel"></use></svg></button>
+      <button class="btn btn-ai" id="btn-ai" title="AI 绘制 (⌘K)"><svg class="i"><use href="#i-spark"></use></svg>AI 绘制</button>
+      <button class="icon-btn" id="btn-ai-settings" title="AI 设置（模型 / Key）"><svg class="i"><use href="#i-settings"></use></svg></button>
+      <button class="icon-btn toggle" id="btn-preview" title="预览裁切效果 (⇧P)"><svg class="i"><use href="#i-eye"></use></svg></button>
+      <button class="btn btn-primary" id="btn-export"><svg class="i"><use href="#i-download"></use></svg>导出</button>
+    </div>
+    <div class="ai-settings-pop hidden" id="ai-settings-pop">
+      <div class="ai-settings-head"><b>AI 设置</b><button class="icon-btn tiny" id="ai-settings-close" title="关闭"><svg class="i"><use href="#i-close"></use></svg></button></div>
+      <label class="ai-settings-row"><span>模型</span>
+        <select class="select select-sm" id="ai-model" title="模型">
+          <option value="deepseek-chat">deepseek-chat</option>
+          <option value="deepseek-reasoner">deepseek-reasoner</option>
+        </select>
+      </label>
+      <div class="ai-settings-row"><span>DeepSeek Key</span><span class="ai-settings-key" id="ai-settings-key-state">未保存</span></div>
+      <div class="ai-settings-actions"><button class="btn btn-sm" id="ai-key-btn" title="管理 DeepSeek Key"><svg class="i"><use href="#i-key"></use></svg>管理 Key</button></div>
+      <p class="ai-settings-note">Key 只保存在本机，只通过本机 8787 转发。</p>
+    </div>
+  </header>
+
+  <div class="editor-body">
+    <nav class="toolrail" id="toolrail" aria-label="工具">
+      <button class="tool active" data-tool="select" title="选择 (V)"><svg class="i"><use href="#i-cursor"></use></svg></button>
+      <button class="tool" data-tool="artboard" title="画板 (A)"><svg class="i"><use href="#i-frame"></use></svg></button>
+      <span class="tool-sep"></span>
+      <button class="tool" data-tool="rect" title="矩形 (R)"><svg class="i"><use href="#i-square"></use></svg></button>
+      <button class="tool" data-tool="ellipse" title="椭圆 (O)"><svg class="i"><use href="#i-circle"></use></svg></button>
+      <button class="tool" data-tool="polygon" title="多边形 / 星形 (P)"><svg class="i"><use href="#i-polygon"></use></svg></button>
+      <button class="tool" data-tool="line" title="直线 (L)"><svg class="i"><use href="#i-line"></use></svg></button>
+      <button class="tool" data-tool="pen" title="钢笔 (N)"><svg class="i"><use href="#i-pen"></use></svg></button>
+      <span class="tool-sep"></span>
+      <button class="tool" data-tool="text" title="文字 (T)"><svg class="i"><use href="#i-type"></use></svg></button>
+      <button class="tool" data-tool="image" title="图片 (I)"><svg class="i"><use href="#i-image"></use></svg></button>
+      <span class="tool-sep"></span>
+      <button class="tool" data-tool="hand" title="抓手 (H / 空格)"><svg class="i"><use href="#i-hand"></use></svg></button>
+      <button class="tool" data-tool="zoom" title="缩放 (Z)"><svg class="i"><use href="#i-zoom"></use></svg></button>
+      <span class="tool-spacer"></span>
+      <button class="tool" id="btn-help" title="快捷键"><svg class="i"><use href="#i-help"></use></svg></button>
+    </nav>
+
+    <aside class="leftpanel">
+      <div class="panel-tabs" role="tablist">
+        <button class="ptab active" data-tab="layers" role="tab">图层</button>
+        <button class="ptab" data-tab="artboards" role="tab">画板</button>
+        <button class="ptab" data-tab="brand" role="tab">品牌</button>
+        <button class="icon-btn tiny" id="btn-add-artboard" title="新建画板"><svg class="i"><use href="#i-plus"></use></svg></button>
+      </div>
+      <div class="panel-scroll" id="tab-layers">
+        <ul class="layer-list" id="layers-list"></ul>
+        <div class="panel-empty" id="layers-empty">画布还是空的<br><span>从左侧工具栏添加元素，或直接把图片拖进来</span></div>
+      </div>
+      <div class="panel-scroll hidden" id="tab-artboards">
+        <ul class="ab-list" id="artboards-list"></ul>
+      </div>
+      <div class="panel-scroll hidden" id="tab-brand">
+        <div id="brand-tab-body"></div>
+      </div>
+      <div class="leftpanel-foot">
+        <span id="layer-count">0 个对象</span>
+        <button class="icon-btn tiny" id="btn-dup-layer" title="复制 (⌘D)"><svg class="i"><use href="#i-copy"></use></svg></button>
+        <button class="icon-btn tiny" id="btn-del-layer" title="删除 (⌫)"><svg class="i"><use href="#i-trash"></use></svg></button>
+      </div>
+    </aside>
+    <div class="left-splitter" id="left-splitter" title="拖动调整左侧面板宽度；双击恢复默认"></div>
+
+    <div class="editor-main">
+      <div class="editor-workspace">
+    <section class="stage" id="stage">
+      <div class="ruler-corner" id="ruler-corner"></div>
+      <div class="ruler ruler-top"><canvas id="ruler-top"></canvas></div>
+      <div class="ruler ruler-left"><canvas id="ruler-left"></canvas></div>
+      <div class="canvas-wrap" id="canvas-wrap"><canvas id="c"></canvas></div>
+      <div class="stage-hint" id="stage-hint">
+        <svg class="i"><use href="#i-image"></use></svg>
+        拖入图片 · 双击文字改内容 · 拖画板名/边框移动 · <kbd>空格</kbd> 拖动画布
+        <button class="hint-x" id="hint-close" aria-label="关闭提示">×</button>
+      </div>
+    </section>
+
+    <aside class="rightpanel" id="props" aria-label="属性"></aside>
+      </div>
+      <section class="ai-dock" id="ai-dock" aria-label="AI 助手">
+        <div class="ai-dock-grip" id="ai-dock-grip" title="拖动调整 AI 面板高度；双击恢复默认"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="statusbar">
+    <div class="status-left"><span id="sel-info">未选择对象</span></div>
+    <div class="status-mid">
+      <span><kbd>⌘</kbd>+滚轮缩放</span>
+      <span><kbd>⇧</kbd>等比</span>
+      <span><kbd>⌥</kbd>中心缩放</span>
+    </div>
+    <div class="status-right">
+      <button class="chip" id="btn-snap" title="吸附：参考线、画板边缘和中心"><svg class="i"><use href="#i-magnet"></use></svg>吸附</button>
+      <span class="vsep"></span>
+      <button class="icon-btn tiny" id="btn-zoom-out" title="缩小 (⌘-)"><svg class="i"><use href="#i-minus"></use></svg></button>
+      <button class="zoom-num" id="zoom-label" title="点击输入缩放比例">100%</button>
+      <button class="icon-btn tiny" id="btn-zoom-in" title="放大 (⌘+)"><svg class="i"><use href="#i-plus"></use></svg></button>
+      <button class="chip" id="btn-fit" title="适应画板 (⌘0)"><svg class="i"><use href="#i-fit"></use></svg>适应</button>
+    </div>
+  </footer>
+</div>
+
+<!-- 新建项目 -->
+<div class="modal-layer hidden" id="modal-new">
+  <div class="modal" style="width:720px">
+    <header class="modal-head">
+      <div>
+        <h2>新建项目</h2>
+        <p>按实物尺寸建画板，单位毫米；导出时再按 DPI 换算像素。</p>
+      </div>
+      <button class="icon-btn" data-close="modal-new"><svg class="i"><use href="#i-close"></use></svg></button>
+    </header>
+    <div class="modal-body newproj">
+      <div class="newproj-form">
+        <label class="field"><span class="field-label">项目名称</span><input id="np-name" class="input" value="未命名项目" autocomplete="off"></label>
+        <div class="field-row">
+          <label class="field"><span class="field-label">宽度 (mm)</span><input id="np-w" class="input tabular" type="number" min="1" step="1" value="1000"></label>
+          <button class="icon-btn swap" id="np-swap" title="宽高互换"><svg class="i"><use href="#i-swap"></use></svg></button>
+          <label class="field"><span class="field-label">高度 (mm)</span><input id="np-h" class="input tabular" type="number" min="1" step="1" value="2000"></label>
+        </div>
+        <div class="field-row">
+          <label class="field"><span class="field-label">导出 DPI</span>
+            <select id="np-dpi" class="select"><option value="72">72 · 屏幕预览</option><option value="150" selected>150 · 常规输出</option><option value="300">300 · 高清印刷</option></select>
+          </label>
+          <label class="field"><span class="field-label">画板底色</span>
+            <span class="color-field"><input type="color" id="np-bg" value="#ffffff"><input id="np-bg-hex" class="input tabular" value="#ffffff" spellcheck="false"></span>
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="np-transparent"> 透明画板（导出不带底色）</label>
+      </div>
+      <div class="newproj-presets">
+        <span class="field-label">常用尺寸</span>
+        <div class="preset-grid" id="np-presets"></div>
+        <button class="link-btn brand-link" id="np-brand">从品牌模板开始 →</button>
+      </div>
+    </div>
+    <footer class="modal-foot">
+      <span class="hint">稍后还可以在「画板」里继续添加画板</span>
+      <button class="btn" data-close="modal-new">取消</button>
+      <button class="btn btn-primary" id="np-create">创建项目</button>
+    </footer>
+  </div>
+</div>
+
+<!-- 导出 -->
+<div class="modal-layer hidden" id="modal-export">
+  <div class="modal" style="width:560px">
+    <header class="modal-head">
+      <div><h2>导出</h2><p>按画板实际尺寸输出，文字保持矢量。</p></div>
+      <button class="icon-btn" data-close="modal-export"><svg class="i"><use href="#i-close"></use></svg></button>
+    </header>
+    <div class="modal-body">
+      <label class="field"><span class="field-label">画板</span><select id="ex-artboard" class="select"></select></label>
+      <div class="field"><span class="field-label">格式</span>
+        <div class="segmented" id="ex-format">
+          <button data-fmt="png" class="active">PNG</button>
+          <button data-fmt="jpg">JPG</button>
+          <button data-fmt="svg">SVG</button>
+          <button data-fmt="pdf">PDF 打印</button>
+        </div>
+      </div>
+      <div class="field-row" id="ex-raster-row">
+        <label class="field"><span class="field-label">分辨率 DPI</span>
+          <select id="ex-dpi" class="select"><option value="72">72</option><option value="150" selected>150</option><option value="300">300</option><option value="450">450</option></select>
+        </label>
+        <label class="field"><span class="field-label">输出像素</span><input id="ex-size" class="input tabular" readonly></label>
+      </div>
+      <label class="field hidden" id="ex-jpg-row"><span class="field-label">JPG 质量 <b id="ex-q-val">92</b></span><input type="range" id="ex-quality" min="50" max="100" value="92"></label>
+      <label class="check" id="ex-transparent-row"><input type="checkbox" id="ex-transparent"> 透明背景</label>
+      <label class="field"><span class="field-label">文件名</span><input id="ex-name" class="input" spellcheck="false"></label>
+      <p class="note" id="ex-note"></p>
+    </div>
+    <footer class="modal-foot">
+      <button class="btn" data-close="modal-export">取消</button>
+      <button class="btn btn-primary" id="ex-run"><svg class="i"><use href="#i-download"></use></svg>导出</button>
+    </footer>
+  </div>
+</div>
+
+<!-- AI 绘制 -->
+<!-- 品牌库 -->
+<div class="modal-layer hidden" id="modal-brand">
+  <div class="modal brand-modal">
+    <header class="brand-head">
+      <div class="brand-head-title">
+        <span class="brand-head-mark"><svg class="i"><use href="#i-brand"></use></svg></span>
+        <div>
+          <h2>品牌库</h2>
+          <p>素材、模板、品牌色与字体都存在本机</p>
+        </div>
+      </div>
+      <div class="brand-head-actions">
+        <span class="brand-meta" id="brand-meta"></span>
+        <button class="icon-btn" data-close="modal-brand" title="关闭"><svg class="i"><use href="#i-close"></use></svg></button>
+      </div>
+    </header>
+    <div class="brand-tabs" id="brand-tabs">
+      <button data-btab="assets" class="active">素材</button>
+      <button data-btab="templates">模板</button>
+      <button data-btab="identity">品牌色与字体</button>
+    </div>
+    <div class="brand-body">
+      <section class="brand-pane" id="brand-pane-assets">
+        <div class="brand-pane-bar">
+          <div class="brand-filters" id="brand-filters"></div>
+          <div class="brand-upload-row">
+            <select class="select select-sm" id="brand-category" title="上传后归类">
+              <option value="logo">Logo</option>
+              <option value="graphic" selected>图形</option>
+              <option value="photo">图片</option>
+              <option value="other">其他</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="brand-upload"><svg class="i"><use href="#i-upload"></use></svg>上传素材</button>
+          </div>
+        </div>
+        <div class="brand-dropzone" id="brand-dropzone">
+          <svg class="i"><use href="#i-image"></use></svg>
+          拖 PNG / JPG / SVG 到这里，或点「上传素材」
+        </div>
+        <div class="brand-grid" id="brand-grid"></div>
+        <div class="brand-empty hidden" id="brand-assets-empty">
+          <span class="brand-empty-icon"><svg class="i"><use href="#i-brand"></use></svg></span>
+          <h3>还没有品牌素材</h3>
+          <p>把常用的 Logo、图标、纹理或 PS 导出的元素传进来，之后在左侧「品牌」里一点就能插入画板。</p>
+          <button class="btn btn-primary btn-sm" id="brand-empty-upload">上传第一个素材</button>
+        </div>
+      </section>
+
+      <section class="brand-pane hidden" id="brand-pane-templates">
+        <div class="brand-pane-bar">
+          <div class="brand-note">把排好的画板存成模板，下次从模板开始或直接套到当前画板。</div>
+          <button class="btn btn-primary btn-sm" id="brand-save-template"><svg class="i"><use href="#i-plus"></use></svg>存为模板</button>
+        </div>
+        <div class="brand-tpl-grid" id="brand-tpl-grid"></div>
+        <div class="brand-empty hidden" id="brand-tpl-empty">
+          <span class="brand-empty-icon"><svg class="i"><use href="#i-frame"></use></svg></span>
+          <h3>还没有品牌模板</h3>
+          <p>打开一个排好的画板，点「存为模板」，以后新建项目或做系列稿时可以直接套用。</p>
+          <button class="btn btn-primary btn-sm" id="brand-tpl-empty-save">保存当前画板为模板</button>
+        </div>
+      </section>
+
+      <section class="brand-pane hidden" id="brand-pane-identity">
+        <div class="brand-identity" id="brand-identity"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- 视觉服务设置 -->
+<div class="modal-layer hidden" id="modal-vision">
+  <div class="modal vision-modal">
+    <header class="modal-head">
+      <div><h2>视觉服务</h2><p>开启「看画板」时，截图会发给这个 OpenAI 兼容端点</p></div>
+      <button class="icon-btn" data-close="modal-vision" title="关闭"><svg class="i"><use href="#i-close"></use></svg></button>
+    </header>
+    <div class="modal-body vision-body">
+      <div class="vision-note">
+        <b>默认是 OVHcloud 免费视觉链</b>，匿名、无需 Key，但按 IP 限流，忙时会不可用。可以换成你自己的视觉模型：本地 Ollama / LM Studio，或任意 OpenAI 兼容的云端视觉 API。
+      </div>
+      <label class="field"><span class="field-label">服务地址</span>
+        <input class="input" id="vision-base" placeholder="https://oai.endpoints.kepler.ai.cloud.ovh.net/v1" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field"><span class="field-label">模型（多个用逗号分隔，按顺序降级）</span>
+        <input class="input" id="vision-model" placeholder="Qwen2.5-VL-72B-Instruct" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field"><span class="field-label">API Key（可选）</span>
+        <input class="input" id="vision-key" type="password" placeholder="本地模型可留空" autocomplete="off" spellcheck="false">
+      </label>
+      <p class="vision-hint">截图只在你开启「看画板」并发送时发出；不写进项目文件。敏感画面请填本机视觉端点。</p>
+      <div class="vision-status" id="vision-status"></div>
+    </div>
+    <footer class="modal-foot">
+      <button class="btn" id="vision-reset">恢复默认</button>
+      <button class="btn" data-close="modal-vision">取消</button>
+      <button class="btn btn-primary" id="vision-save">保存</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-layer hidden" id="modal-ai">
+  <div class="modal ai-modal">
+    <header class="ai-head">
+      <div class="ai-brand">
+        <span class="ai-spark">✦</span>
+        <div><h2>AI 绘制</h2></div>
+      </div>
+      <div class="ai-vision-bar ai-vision-in-head">
+        <button type="button" class="ai-vision-toggle" id="ai-vision" aria-pressed="false">
+          <svg class="i"><use href="#i-eye"></use></svg>
+          <span id="ai-vision-label">让 AI 看当前画板</span>
+        </button>
+        <span class="ai-vision-note" id="ai-vision-note">截图会发给视觉模型</span>
+        <button type="button" class="icon-btn tiny ai-vision-gear" id="ai-vision-settings" title="视觉服务设置">
+          <svg class="i"><use href="#i-settings"></use></svg>
+        </button>
+      </div>
+      <div class="ai-head-tools">
+        <button class="icon-btn" id="ai-dock-min" title="最小化 AI 面板"><svg class="i"><use href="#i-minus"></use></svg></button>
+      </div>
+    </header>
+
+    <div class="ai-body">
+      <section class="ai-chat">
+        <div class="ai-keygate" id="ai-keygate">
+          <div class="ai-keygate-head"><b>连接 DeepSeek</b><span class="ai-pill">API Key</span></div>
+          <p>使用 AI 时，描述会发给 DeepSeek；Key 保存在这台电脑（浏览器 + 本机配置），保存后不用重复输入，只通过本机 8787 转发。</p>
+          <div class="ai-key-state" id="ai-key-state">保存后在这台电脑上不用重复输入</div>
+          <div class="ai-key-row">
+            <input class="input" id="ai-key" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
+            <button class="btn btn-primary btn-sm" id="ai-key-save">保存</button>
+          </div>
+          <div class="ai-key-foot">
+            <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">获取 API Key ↗</a>
+            <button class="link-btn hidden" id="ai-key-clear">清除已保存的 Key</button>
+          </div>
+          <div class="ai-proxy-warn hidden" id="ai-proxy-warn"></div>
+        </div>
+
+        <div class="ai-messages" id="ai-messages"></div>
+
+        <div class="ai-composer">
+          <div class="ai-attachments hidden" id="ai-attachments"></div>
+          <div class="ai-mention-chips hidden" id="ai-mention-chips"></div>
+          <div class="ai-input-wrap">
+            <textarea id="ai-input" rows="2" maxlength="4000" placeholder="描述画面，或上传参考图 / PDF / 贴 Pinterest 链接；也可以说：把价格改成 30.000、标题放大一点…"></textarea>
+            <button type="button" class="ai-input-edge" id="ai-input-edge" title="拖动输入框上边框调整高度（往上拉高）；双击恢复自动高度" aria-label="调整输入框高度"></button>
+          </div>
+          <div class="ai-composer-foot">
+            <div class="ai-attach-bar">
+              <button type="button" class="ai-attach-btn" id="ai-attach" title="上传图片 / PDF / 文本参考">
+                <svg class="i"><use href="#i-paperclip"></use></svg>参考
+              </button>
+              <button type="button" class="ai-attach-btn" id="ai-link" title="添加链接参考（Pinterest / 网页）">
+                <svg class="i"><use href="#i-link"></use></svg>链接
+              </button>
+              <button type="button" class="ai-attach-btn ai-mention-btn" id="ai-mention" title="引用画板 / 图层 / 品牌元素">
+                <span class="ai-at">@</span>引用
+              </button>
+              <div class="ai-pinterest-wrap">
+                <button type="button" class="ai-attach-btn ai-pinterest" id="ai-pinterest" title="打开我的 Pinterest 主页">
+                  <span class="p-dot">P</span>Pinterest
+                </button>
+                <button type="button" class="ai-pinterest-more" id="ai-pinterest-more" title="Pinterest 选项">
+                  <svg class="i"><use href="#i-chevron-down"></use></svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="ai-send"><span class="ai-send-text">发送</span></button>
+          </div>
+          <div class="ai-mention-pop hidden" id="ai-mention-pop">
+            <div class="ai-mention-head"><b>引用到本次指令</b><span>可多选</span></div>
+            <input class="input" id="ai-mention-search" placeholder="搜索画板 / 图层 / 品牌元素…" autocomplete="off" spellcheck="false">
+            <div class="ai-mention-list" id="ai-mention-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="ai-split" id="ai-split" role="separator" aria-orientation="vertical" title="左右拖动调整对话 / 画布宽度；双击恢复默认"></div>
+
+      <section class="ai-stage">
+        <div class="ai-stage-head">
+          <div class="ai-stage-status">
+            <span class="ai-dot" id="ai-status-dot"></span>
+            <span id="ai-type">等待生成</span>
+            <span class="ai-meta hidden" id="ai-meta"></span>
+          </div>
+          <div class="ai-stage-tools">
+            <button class="btn btn-sm" id="ai-code-toggle" disabled>代码</button>
+            <button class="btn btn-sm" id="ai-copy" disabled>复制</button>
+          </div>
+        </div>
+
+        <div class="ai-preview" id="ai-preview">
+          <div class="ai-empty" id="ai-empty">
+            <span class="ai-empty-spark">✦</span>
+            <h3>让 AI 画一张 / 改一张</h3>
+            <p>它会返回一段能直接渲染的 SVG（可编辑矢量）或 HTML/CSS（位图）。先看示例也行。</p>
+            <div class="ai-empty-actions">
+              <button class="btn btn-sm" id="ai-sample-svg">SVG 示例</button>
+              <button class="btn btn-sm" id="ai-sample-html">HTML/CSS 示例</button>
+            </div>
+          </div>
+          <div class="ai-ops hidden" id="ai-ops"></div>
+          <div class="ai-boards hidden" id="ai-boards"></div>
+          <div class="ai-frame-wrap hidden" id="ai-frame-wrap"></div>
+          <pre class="ai-code hidden" id="ai-code"></pre>
+        </div>
+
+        <div class="ai-stage-foot">
+          <div class="ai-foot-left">
+            <label class="check hidden" id="ai-replace-wrap"><input type="checkbox" id="ai-replace" checked> 替换上次插入</label>
+            <span class="ai-hint" id="ai-hint">SVG 会作为可编辑矢量插入当前画板</span>
+          </div>
+          <div class="ai-foot-right">
+            <div class="segmented ai-kind" id="ai-insert-kind">
+              <button data-kind="vector" class="active">矢量</button>
+              <button data-kind="image">图片</button>
+            </div>
+            <button class="btn btn-primary" id="ai-insert" disabled>插入画板</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <button type="button" class="ai-resize" id="ai-resize" title="拖动调整对话框大小；双击恢复默认" aria-label="调整对话框大小">
+      <svg class="i"><use href="#i-corner"></use></svg>
+    </button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<input type="file" id="file-image" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" multiple hidden>
+<input type="file" id="file-font" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden>
+<input type="file" id="file-project" accept=".json,application/json" hidden>
+<input type="file" id="file-ai" accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf,.pdf,.txt,.md,text/plain" multiple hidden>
+<input type="file" id="file-brand" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple hidden>
+<datalist id="font-list"></datalist>
+
+<!-- 图标 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="i-cursor" viewBox="0 0 24 24"><path d="M4 3l7.07 16.97 2.51-7.39 7.39-2.51L4 3z"/></symbol>
+<symbol id="i-frame" viewBox="0 0 24 24"><path d="M6.13 1L6 16a2 2 0 002 2h15"/><path d="M1 6.13L16 6a2 2 0 012 2v15"/></symbol>
+<symbol id="i-square" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></symbol>
+<symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></symbol>
+<symbol id="i-polygon" viewBox="0 0 24 24"><path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4z"/></symbol>
+<symbol id="i-line" viewBox="0 0 24 24"><path d="M4 20L20 4"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></symbol>
+<symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></symbol>
+<symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 013 0V11"/><path d="M11 11V4.5a1.5 1.5 0 013 0V11"/><path d="M14 11.5V6a1.5 1.5 0 013 0v5.5"/><path d="M17 10.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1a6 6 0 01-6-6v-3.5a1.5 1.5 0 013 0V14"/></symbol>
+<symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="M16 16l5 5M8 10.5h5M10.5 8v5"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M3.5 13a9 9 0 102.1-9.4L3 7"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M20.5 13a9 9 0 10-2.1-9.4L21 7"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 19.5C5.5 19.5 1.5 12 1.5 12a18.5 18.5 0 015.06-5.94M9.9 4.24A9.1 9.1 0 0112 4.5C18.5 4.5 22.5 12 22.5 12a18.6 18.6 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+<symbol id="i-unlock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 017.5-2"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-maximize" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="M16 16l5 5"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 11v6M14 11v6"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></symbol>
+<symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 3v7a6 6 0 0012 0V3"/><path d="M6 8h4M14 8h4"/><path d="M18 3h-4M6 3h4"/></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4l-4 4 4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 8l5-5 5 5M12 3v12"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-group" viewBox="0 0 24 24"><rect x="4" y="4" width="10" height="10" rx="1.5"/><rect x="10" y="10" width="10" height="10" rx="1.5"/></symbol>
+<symbol id="i-ungroup" viewBox="0 0 24 24"><path d="M3 3h8v8H3zM13 13h8v8h-8z" stroke-dasharray="3 3"/><path d="M13 3h8M3 13v8"/></symbol>
+<symbol id="i-unite" viewBox="0 0 24 24"><rect x="3" y="3" width="11" height="11" rx="1"/><rect x="10" y="10" width="11" height="11" rx="1"/><path d="M3 3h11v7h7v11H10v-7H3z" fill="currentColor" fill-opacity=".14" stroke="none"/></symbol>
+<symbol id="i-subtract" viewBox="0 0 24 24"><rect x="3" y="3" width="11" height="11" rx="1"/><rect x="10" y="10" width="11" height="11" rx="1" stroke-dasharray="2.5 2.5"/><path d="M3 3h11v7H10v4H3z" fill="currentColor" fill-opacity=".2" stroke="none"/></symbol>
+<symbol id="i-intersect" viewBox="0 0 24 24"><rect x="3" y="3" width="11" height="11" rx="1"/><rect x="10" y="10" width="11" height="11" rx="1"/><path d="M10 10h4v4h-4z" fill="currentColor" fill-opacity=".38" stroke="none"/></symbol>
+<symbol id="i-exclude" viewBox="0 0 24 24"><rect x="3" y="3" width="11" height="11" rx="1"/><rect x="10" y="10" width="11" height="11" rx="1"/><path d="M3 3h11v7h-4v4H3zM14 14h7v7h-7z" fill="currentColor" fill-opacity=".2" stroke="none"/></symbol>
+<symbol id="i-align-left" viewBox="0 0 24 24"><path d="M3 3v18"/><rect x="7" y="6" width="12" height="4" rx="1"/><rect x="7" y="14" width="8" height="4" rx="1"/></symbol>
+<symbol id="i-align-center" viewBox="0 0 24 24"><path d="M12 3v18"/><rect x="4" y="6" width="16" height="4" rx="1"/><rect x="7" y="14" width="10" height="4" rx="1"/></symbol>
+<symbol id="i-align-right" viewBox="0 0 24 24"><path d="M21 3v18"/><rect x="5" y="6" width="12" height="4" rx="1"/><rect x="9" y="14" width="8" height="4" rx="1"/></symbol>
+<symbol id="i-align-top" viewBox="0 0 24 24"><path d="M3 3h18"/><rect x="6" y="7" width="4" height="12" rx="1"/><rect x="14" y="7" width="4" height="8" rx="1"/></symbol>
+<symbol id="i-align-middle" viewBox="0 0 24 24"><path d="M3 12h18"/><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="7" width="4" height="10" rx="1"/></symbol>
+<symbol id="i-align-bottom" viewBox="0 0 24 24"><path d="M3 21h18"/><rect x="6" y="5" width="4" height="12" rx="1"/><rect x="14" y="9" width="4" height="8" rx="1"/></symbol>
+<symbol id="i-flip-h" viewBox="0 0 24 24"><path d="M12 3v18" stroke-dasharray="2 3"/><path d="M8 7L3 12l5 5V7zM16 7l5 5-5 5V7z"/></symbol>
+<symbol id="i-flip-v" viewBox="0 0 24 24"><path d="M3 12h18" stroke-dasharray="2 3"/><path d="M7 8l5-5 5 5H7zM7 16l5 5 5-5H7z"/></symbol>
+<symbol id="i-font" viewBox="0 0 24 24"><path d="M4 20l6-16h2l6 16M7.5 14h7"/></symbol>
+<symbol id="i-gradient" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15h18v5H5a2 2 0 01-2-2z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M3 11h18" stroke-dasharray="2 3"/></symbol>
+<symbol id="i-shadow" viewBox="0 0 24 24"><rect x="3" y="3" width="12" height="12" rx="2"/><path d="M8 21h11a2 2 0 002-2V8" stroke-dasharray="3 3"/></symbol>
+<symbol id="i-corner" viewBox="0 0 24 24"><path d="M4 20V8a4 4 0 014-4h12"/><path d="M4 4h4M20 20h-4" stroke-dasharray="2 3"/></symbol>
+<symbol id="i-artboard-plus" viewBox="0 0 24 24"><rect x="3" y="3" width="14" height="14" rx="1"/><path d="M20 14v7M16.5 17.5h7"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 01-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 01-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H3a2 2 0 010-4h.1a1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 012.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V3a2 2 0 014 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 012.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 010 4h-.1a1.6 1.6 0 00-1.5 1z"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.2l1.9 5.3 5.3 1.9-5.3 1.9L12 17.6l-1.9-5.3L4.8 10.4l5.3-1.9z"/><path d="M18.6 15.4l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol>
+<symbol id="i-brand" viewBox="0 0 24 24"><path d="M4 4h8.5L20 11.5 11.5 20 4 12.5z"/><circle cx="8.2" cy="8.2" r="1.5"/></symbol>
+<symbol id="i-paperclip" viewBox="0 0 24 24"><path d="M21.4 11.6l-9.2 9.2a6 6 0 01-8.5-8.5l9.2-9.2a4 4 0 015.7 5.7l-9.2 9.2a2 2 0 01-2.8-2.8l8.1-8.1"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1.5-1.5"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15.5" r="4.2"/><path d="M11 12.5L20 3.5M16.5 7l3 3M19 4.5l2 2"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+</defs>
+</svg>
+
+<script src="js/vendor/fabric.min.js"></script>
+<script src="js/vendor/paper-core.min.js"></script>
+<script src="js/vendor/html2canvas.min.js"></script>
+<script src="js/util.js?v=79"></script>
+<script src="js/store.js?v=79"></script>
+<script src="js/fonts.js?v=79"></script>
+<script src="js/boolean.js?v=79"></script>
+<script src="js/editor.js?v=79"></script>
+<script src="js/props.js?v=79"></script>
+<script src="js/exporter.js?v=79"></script>
+<script src="js/vendor/pdf.min.js"></script>
+<script src="js/ai.js?v=79"></script>
+<script src="js/brand.js?v=79"></script>
+<script src="js/demo.js?v=79"></script>
+<script src="js/home.js?v=79"></script>
+<script src="js/app.js?v=79"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+.layoutsmith/
+__pycache__/
+*.pyc
+.DS_Store
+_desktop_build/
+_qlicon/
+.github_deploy_key
+.github_deploy_key.pub
+.github_token
