@@ -603,8 +603,9 @@
           <label class="pin-field"><span>Pinterest App ID</span><input class="input" id="pin-app-id" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="例如 1644778"></label>
           <label class="pin-field"><span>App Secret</span><input class="input" id="pin-app-secret" type="password" autocomplete="new-password" placeholder="在 Pinterest App 的 Configure 里复制"></label>
           <label class="pin-field"><span>Redirect URI</span><input class="input pin-mono" id="pin-redirect" autocomplete="off" spellcheck="false"></label>
+          <label class="pin-field"><span>Access Token（Trial 审核中可用）</span><input class="input pin-mono" id="pin-access-token" type="password" autocomplete="new-password" placeholder="点 Pinterest 的 Generate token 后粘贴到这里；只存本机"></label>
         </div>
-        <div class="pin-note">把上面的 Redirect URI 加到 Pinterest App 的 <b>Configure → Redirect URIs</b>，并确认 App 已有 <b>boards:read</b>、<b>pins:read</b> 权限。如果 Board 是 Secret，还需要对应的 read_secret 权限。</div>
+        <div class="pin-note">App Secret 和 Redirect URI 在 Trial access 审核通过前会被 Pinterest 锁住（显示为灰色）。审核中可以直接用 Pinterest 页面的 <b>Generate Access Tokens</b>，把 token 粘到上面，先读取 Pins / Boards；token 过期后再生成一个即可。<br>审核通过后，把 Redirect URI 加到 <b>Configure → Redirect URIs</b>，再填 App Secret 就可以用正常的 OAuth 授权。确认 App 已有 <b>boards:read</b>、<b>pins:read</b> 权限。</div>
         <div class="pin-error hidden" id="pin-error"></div>
         <button type="button" class="btn btn-primary" id="pin-save">保存并继续</button>
       </div>
@@ -629,6 +630,7 @@
     </div>
     <footer class="pin-foot">
       <button type="button" class="pin-link danger hidden" id="pin-disconnect">断开连接</button>
+      <button type="button" class="pin-link hidden" id="pin-settings">应用设置</button>
       <span class="pin-selected" id="pin-selected">已选 0</span>
       <button type="button" class="btn btn-sm" id="pin-cancel">取消</button>
       <button type="button" class="btn btn-primary btn-sm" id="pin-add" disabled>添加到聊天</button>

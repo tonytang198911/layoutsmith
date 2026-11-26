@@ -180,7 +180,8 @@ Mac 用 ⌘，Windows 用 Ctrl。
 AI 面板左下角的 Pinterest 按钮会打开 Pins / Boards 选择器：
 
 - App ID：`1644778`（已预填）；
-- 第一次使用，把 Pinterest App 的 **App Secret** 填进本机设置表单，并把 `http://localhost:8787/api/pinterest/callback` 加到 Pinterest App 的 **Configure → Redirect URIs**；
+- Trial access 审核通过前，Pinterest 会把 App Secret 和 Redirect URIs 锁成灰色；这时点 Pinterest 页面的 **Generate Access Tokens**，把 token 填进本机设置表单的 **Access Token** 字段即可先读取 Pins / Boards（token 只存本机，过期后重新生成）。
+- 审核通过后，把 `http://localhost:8787/api/pinterest/callback` 加到 **Configure → Redirect URIs**，再填 App Secret，就可以用正常的 OAuth 授权。
 - 点“连接 Pinterest”完成 OAuth 后，可以按 Board 浏览、选图，把图片加入 AI 参考；
 - App Secret / token 只保存在本机 `.layoutsmith/pinterest.json`（权限 600），不会进入 GitHub 仓库；
 - 选图会占用 AI 参考名额（当前上限 6 个）；Pinterest 只读，不发布内容。

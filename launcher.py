@@ -701,6 +701,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             current = pinterest_load()
             app_id = str(payload.get('appId') or '').strip()
             app_secret = str(payload.get('appSecret') or '').strip()
+            access_token = str(payload.get('accessToken') or '').strip()
             redirect = str(payload.get('redirectUri') or PINTEREST_DEFAULT_REDIRECT).strip()
             if not re.match(r'^\d{3,20}$', app_id):
                 self._json_error(400, 'App ID 应该是 Pinterest 的纯数字 ID')
@@ -710,15 +711,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return
             if not app_secret:
                 app_secret = (current.get('app_secret') or '').strip()
-            if not app_secret:
-                self._json_error(400, '请填写 Pinterest App Secret')
+            if not app_secret and not access_token and not current.get('access_token'):
+                self._json_error(400, '请填写 App Secret，或粘贴 Pinterest 生成的 Access Token')
                 return
             changed = (str(current.get('app_id') or '') != app_id or str(current.get('app_secret') or '') != app_secret)
             cfg = dict(current)
             cfg['app_id'] = app_id
             cfg['app_secret'] = app_secret
             cfg['redirect_uri'] = redirect
-            if changed:
+            if access_token:
+                cfg['access_token'] = access_token
+                cfg['expires_at'] = time.time() + 30 * 86400
+                cfg.pop('refresh_token', None)
+                cfg.pop('scope', None)
+            elif changed:
                 for k in ('access_token', 'refresh_token', 'expires_at', 'scope'):
                     cfg.pop(k, None)
             pinterest_save(cfg)

@@ -85,13 +85,14 @@
     var configured = !!st.configured;
     var connected = !!st.connected;
     var live = connected && !state.editConfig;
-    var setup = !configured || state.editConfig;
+    var setup = (!configured && !connected) || state.editConfig;
     var connect = configured && !connected && !state.editConfig;
     show('pin-setup', setup);
     show('pin-connect', connect);
     show('pin-browser', live);
     show('pin-tabs', live);
     show('pin-disconnect', live);
+    show('pin-settings', live);
     show('pin-loading', state.loading && !setup);
     if (setup) {
       var app = $('pin-app-id');
@@ -265,19 +266,25 @@
   function saveConfig() {
     var appId = ($('pin-app-id') || {}).value || '';
     var secret = ($('pin-app-secret') || {}).value || '';
+    var token = ($('pin-access-token') || {}).value || '';
     var redirect = ($('pin-redirect') || {}).value || '';
     if (!appId.trim()) { showError('请填写 Pinterest App ID'); return; }
-    if (!secret.trim() && !(state.status && state.status.configured)) { showError('请填写 Pinterest App Secret'); return; }
+    if (!secret.trim() && !token.trim() && !(state.status && (state.status.configured || state.status.connected))) {
+      showError('请填写 App Secret，或粘贴 Pinterest 生成的 Access Token');
+      return;
+    }
     var btn = $('pin-save');
     if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
     showError('');
     api('/api/pinterest/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appId: appId.trim(), appSecret: secret.trim(), redirectUri: redirect.trim() })
+      body: JSON.stringify({ appId: appId.trim(), appSecret: secret.trim(), redirectUri: redirect.trim(), accessToken: token.trim() })
     }).then(function (status) {
       var sec = $('pin-app-secret');
+      var tok = $('pin-access-token');
       if (sec) sec.value = '';
+      if (tok) tok.value = '';
       state.status = status;
       state.editConfig = false;
       state.boards = [];
@@ -409,6 +416,11 @@
       render();
     });
     $('pin-disconnect').addEventListener('click', disconnect);
+    $('pin-settings').addEventListener('click', function () {
+      state.editConfig = true;
+      showError('');
+      render();
+    });
     $('pin-cancel').addEventListener('click', close);
     $('pin-add').addEventListener('click', addSelected);
     $('pin-refresh').addEventListener('click', function () {
