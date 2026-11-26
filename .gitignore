@@ -7,3 +7,4 @@ _qlicon/
 .github_deploy_key
 .github_deploy_key.pub
 .github_token
+.github_known_hosts
