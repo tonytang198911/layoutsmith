@@ -1139,3 +1139,129 @@ body.left-resizing *{cursor:col-resize!important}
   .ai-vision-in-head .ai-vision-note{display:none}
   .ai-composer-foot .ai-attach-btn{padding:0 6px}
 }
+
+/* ───────── Pinterest picker ───────── */
+.pin-modal{
+  width:min(1040px,calc(100vw - 48px));height:min(760px,calc(100vh - 48px));
+  max-width:1040px;max-height:calc(100vh - 48px);overflow:hidden;border-radius:16px;
+}
+.pin-head{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:18px 20px 14px;border-bottom:1px solid var(--line-2);flex:none;
+}
+.pin-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.pin-mark{
+  width:36px;height:36px;border-radius:50%;background:#e60023;color:#fff;flex:none;
+  display:grid;place-items:center;font:800 18px/1 -apple-system,BlinkMacSystemFont,sans-serif;
+  box-shadow:0 2px 6px rgba(230,0,35,.22);
+}
+.pin-brand h2{font-size:16px;font-weight:680;letter-spacing:-.01em;margin:0}
+.pin-brand p{font-size:12px;color:var(--muted);margin:3px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-tabs{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line-2);flex:none}
+.pin-tab{
+  height:34px;padding:0 14px;border:0;background:none;font-size:13px;color:var(--muted);
+  border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:500;
+}
+.pin-tab:hover{color:var(--text)}
+.pin-tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:650}
+.pin-body{flex:1;min-height:0;overflow:auto;padding:18px 20px;background:var(--surface-2)}
+.pin-pane{min-height:100%}
+.pin-pane.hidden,.pin-grid.hidden{display:none}
+.pin-setup-intro b{font-size:15px}
+.pin-setup-intro p{font-size:13px;color:var(--muted);margin:4px 0 0;max-width:660px}
+.pin-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px;max-width:760px}
+.pin-field{display:flex;flex-direction:column;gap:5px}
+.pin-field:last-child{grid-column:1/-1}
+.pin-field>span{font-size:12px;color:var(--muted);font-weight:500}
+.pin-mono{font-family:var(--mono);font-size:12px}
+.pin-note{
+  max-width:760px;margin-top:14px;padding:10px 12px;border:1px solid #dfe8ff;background:#f4f7ff;
+  border-radius:8px;color:#41506a;font-size:12px;line-height:1.6;
+}
+.pin-note b{color:var(--text)}
+.pin-error{
+  max-width:760px;margin-top:12px;padding:9px 12px;border:1px solid #ffd4d0;background:#fff5f4;
+  border-radius:8px;color:#a52218;font-size:12px;line-height:1.5;
+}
+.pin-link{
+  border:0;background:none;padding:0;font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;
+  text-underline-offset:2px;
+}
+.pin-link:hover{color:var(--text)}
+.pin-link.danger{color:#a52218}
+.pin-link.hidden,.pin-error.hidden,.pin-loading.hidden,.pin-empty.hidden{display:none}
+#pin-save{margin-top:16px}
+.pin-connect{text-align:center;padding:38px 20px;max-width:520px;margin:0 auto}
+.pin-connect-icon{
+  width:64px;height:64px;border-radius:50%;background:#e60023;color:#fff;margin:0 auto 14px;
+  display:grid;place-items:center;font:800 30px/1 -apple-system,BlinkMacSystemFont,sans-serif;
+}
+.pin-connect h3{font-size:18px;margin:0 0 7px}
+.pin-connect p{font-size:13px;color:var(--muted);margin:0 auto 18px;max-width:380px;line-height:1.7}
+.pin-connect .pin-link{display:block;margin:12px auto 0}
+.pin-connect-note{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6}
+.pin-connect-note a{color:var(--pri)}
+.pin-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.pin-board-select{max-width:360px;min-width:180px}
+.pin-toolbar-note{font-size:12px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-toolbar .btn{flex:none}
+.pin-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.pin-card{
+  position:relative;display:block;width:100%;aspect-ratio:4/5;border-radius:12px;overflow:hidden;
+  border:2px solid transparent;background:#e9eef5;padding:0;cursor:pointer;text-align:left;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);
+}
+.pin-card img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s var(--ease)}
+.pin-card:hover img{transform:scale(1.025)}
+.pin-card.selected{border-color:var(--pri);box-shadow:0 0 0 3px rgba(36,87,245,.14)}
+.pin-card .pin-card-shade{
+  position:absolute;left:0;right:0;bottom:0;padding:28px 10px 9px;color:#fff;font-size:11px;line-height:1.35;
+  background:linear-gradient(transparent,rgba(0,0,0,.62));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pin-card .pin-check{
+  position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(15,23,42,.3);display:grid;place-items:center;
+  color:transparent;font-size:13px;font-weight:700;
+}
+.pin-card.selected .pin-check{background:var(--pri);border-color:var(--pri);color:#fff}
+.pin-card .pin-board-badge{
+  position:absolute;left:8px;top:8px;max-width:calc(100% - 48px);padding:2px 7px;border-radius:20px;
+  background:rgba(15,23,42,.68);color:#fff;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pin-board-card{
+  border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:0;overflow:hidden;
+  text-align:left;cursor:pointer;display:flex;flex-direction:column;min-width:0;
+}
+.pin-board-card:hover{border-color:#cbd7ea;box-shadow:0 4px 14px rgba(15,23,42,.06)}
+.pin-board-card .pin-board-cover{width:100%;aspect-ratio:4/3;background:#e9eef5;overflow:hidden;display:grid;place-items:center;color:var(--muted);font-weight:700}
+.pin-board-card .pin-board-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.pin-board-card .pin-board-info{padding:9px 11px 11px}
+.pin-board-card b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-board-card span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.pin-empty{text-align:center;color:var(--muted);font-size:13px;padding:60px 20px;line-height:1.8}
+.pin-loading{text-align:center;color:var(--muted);font-size:13px;padding:20px}
+.pin-foot{
+  flex:none;display:flex;align-items:center;gap:10px;padding:12px 20px;
+  border-top:1px solid var(--line-2);background:var(--surface);
+}
+.pin-selected{font-size:12px;color:var(--muted);margin-left:auto;margin-right:4px}
+.pin-foot .btn{flex:none}
+.pin-foot #pin-disconnect{margin-right:auto}
+.pin-loading::before{
+  content:"";display:inline-block;width:13px;height:13px;border-radius:50%;
+  border:2px solid #cbd5e1;border-top-color:var(--pri);margin-right:7px;vertical-align:-2px;
+  animation:pinSpin .7s linear infinite;
+}
+@keyframes pinSpin{to{transform:rotate(360deg)}}
+@media (max-width:900px){
+  .pin-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .pin-modal{width:calc(100vw - 20px);height:calc(100vh - 20px);max-height:calc(100vh - 20px)}
+  .pin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pin-form{grid-template-columns:1fr}
+  .pin-field:last-child{grid-column:auto}
+  .pin-brand p{display:none}
+  .pin-toolbar{flex-wrap:wrap}
+  .pin-board-select{max-width:none;flex:1}
+}

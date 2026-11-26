@@ -7,7 +7,7 @@
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f172a'/%3E%3Crect x='7' y='7' width='12' height='12' rx='2' fill='%237ea2ff'/%3E%3Crect x='16' y='17' width='9' height='9' rx='2' fill='%230f8f8e'/%3E%3C/svg%3E">
 <title>排版大师 · Layoutsmith</title>
-<link rel="stylesheet" href="css/app.css?v=79">
+<link rel="stylesheet" href="css/app.css?v=80">
 </head>
 <body>
 
@@ -431,7 +431,7 @@
                 <span class="ai-at">@</span>引用
               </button>
               <div class="ai-pinterest-wrap">
-                <button type="button" class="ai-attach-btn ai-pinterest" id="ai-pinterest" title="打开我的 Pinterest 主页">
+                <button type="button" class="ai-attach-btn ai-pinterest" id="ai-pinterest" title="从我的 Pinterest 选择图片">
                   <span class="p-dot">P</span>Pinterest
                 </button>
                 <button type="button" class="ai-pinterest-more" id="ai-pinterest-more" title="Pinterest 选项">
@@ -579,21 +579,79 @@
 </defs>
 </svg>
 
+
+<div class="modal-layer hidden" id="modal-pinterest">
+  <div class="modal pin-modal">
+    <header class="pin-head">
+      <div class="pin-brand">
+        <span class="pin-mark">P</span>
+        <div><h2>从 Pinterest 选择</h2><p id="pin-head-sub">连接你的 Pinterest 账号，选中的图片会加入 AI 参考</p></div>
+      </div>
+      <button type="button" class="icon-btn" data-close="modal-pinterest" title="关闭"><svg class="i"><use href="#i-close"></use></svg></button>
+    </header>
+    <div class="pin-tabs hidden" id="pin-tabs">
+      <button type="button" class="pin-tab active" data-pin-tab="pins">Pins</button>
+      <button type="button" class="pin-tab" data-pin-tab="boards">Boards</button>
+    </div>
+    <div class="pin-body">
+      <div class="pin-pane" id="pin-setup">
+        <div class="pin-setup-intro">
+          <b>连接你的 Pinterest</b>
+          <p>只读取你授权的 Board 和 Pin，用于选择参考图片；不会发布内容。App Secret 只保存在这台电脑。</p>
+        </div>
+        <div class="pin-form">
+          <label class="pin-field"><span>Pinterest App ID</span><input class="input" id="pin-app-id" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="例如 1644778"></label>
+          <label class="pin-field"><span>App Secret</span><input class="input" id="pin-app-secret" type="password" autocomplete="new-password" placeholder="在 Pinterest App 的 Configure 里复制"></label>
+          <label class="pin-field"><span>Redirect URI</span><input class="input pin-mono" id="pin-redirect" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="pin-note">把上面的 Redirect URI 加到 Pinterest App 的 <b>Configure → Redirect URIs</b>，并确认 App 已有 <b>boards:read</b>、<b>pins:read</b> 权限。如果 Board 是 Secret，还需要对应的 read_secret 权限。</div>
+        <div class="pin-error hidden" id="pin-error"></div>
+        <button type="button" class="btn btn-primary" id="pin-save">保存并继续</button>
+      </div>
+      <div class="pin-pane pin-connect hidden" id="pin-connect">
+        <div class="pin-connect-icon">P</div>
+        <h3>连接 Pinterest</h3>
+        <p>点击后会打开 Pinterest 授权页。登录并点允许后，窗口会自动关闭，回到这里继续选择。</p>
+        <button type="button" class="btn btn-primary" id="pin-connect-btn">连接 Pinterest</button>
+        <button type="button" class="pin-link" id="pin-edit-config">修改 App 信息</button>
+        <div class="pin-connect-note" id="pin-connect-note"></div>
+      </div>
+      <div class="pin-pane hidden" id="pin-browser">
+        <div class="pin-toolbar">
+          <select class="select pin-board-select" id="pin-board-select"></select>
+          <span class="pin-toolbar-note" id="pin-board-meta"></span>
+          <button type="button" class="btn btn-sm" id="pin-refresh">刷新</button>
+        </div>
+        <div class="pin-grid" id="pin-grid"></div>
+        <div class="pin-empty hidden" id="pin-empty"></div>
+        <div class="pin-loading hidden" id="pin-loading">正在读取 Pinterest…</div>
+      </div>
+    </div>
+    <footer class="pin-foot">
+      <button type="button" class="pin-link danger hidden" id="pin-disconnect">断开连接</button>
+      <span class="pin-selected" id="pin-selected">已选 0</span>
+      <button type="button" class="btn btn-sm" id="pin-cancel">取消</button>
+      <button type="button" class="btn btn-primary btn-sm" id="pin-add" disabled>添加到聊天</button>
+    </footer>
+  </div>
+</div>
+
 <script src="js/vendor/fabric.min.js"></script>
 <script src="js/vendor/paper-core.min.js"></script>
 <script src="js/vendor/html2canvas.min.js"></script>
-<script src="js/util.js?v=79"></script>
-<script src="js/store.js?v=79"></script>
-<script src="js/fonts.js?v=79"></script>
-<script src="js/boolean.js?v=79"></script>
-<script src="js/editor.js?v=79"></script>
-<script src="js/props.js?v=79"></script>
-<script src="js/exporter.js?v=79"></script>
+<script src="js/util.js?v=80"></script>
+<script src="js/store.js?v=80"></script>
+<script src="js/fonts.js?v=80"></script>
+<script src="js/boolean.js?v=80"></script>
+<script src="js/editor.js?v=80"></script>
+<script src="js/props.js?v=80"></script>
+<script src="js/exporter.js?v=80"></script>
 <script src="js/vendor/pdf.min.js"></script>
-<script src="js/ai.js?v=79"></script>
-<script src="js/brand.js?v=79"></script>
-<script src="js/demo.js?v=79"></script>
-<script src="js/home.js?v=79"></script>
-<script src="js/app.js?v=79"></script>
+<script src="js/ai.js?v=80"></script>
+<script src="js/pinterest.js?v=80"></script>
+<script src="js/brand.js?v=80"></script>
+<script src="js/demo.js?v=80"></script>
+<script src="js/home.js?v=80"></script>
+<script src="js/app.js?v=80"></script>
 </body>
 </html>

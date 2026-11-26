@@ -18,8 +18,12 @@ import socket
 import ssl
 import re
 import base64
-from urllib.parse import urlparse
+import time
+import secrets
+import tempfile
+from urllib.parse import urlparse, parse_qs, urlencode, quote
 from html.parser import HTMLParser
+from html import escape as html_escape
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CANONICAL_PORT = 8787
@@ -117,6 +121,302 @@ def read_saved_key():
         return ''
 
 
+PINTEREST_FILE = os.path.join(KEY_DIR, 'pinterest.json')
+PINTEREST_DEFAULT_REDIRECT = 'http://localhost:8787/api/pinterest/callback'
+PINTEREST_SCOPES = 'boards:read,pins:read,user_accounts:read'
+PINTEREST_TOKEN_URL = 'https://api.pinterest.com/v5/oauth/token'
+PINTEREST_API_BASE = 'https://api.pinterest.com/v5'
+PINTEREST_STATES = {}
+
+
+class PinterestError(Exception):
+    def __init__(self, message, status=400):
+        super().__init__(message)
+        self.status = status
+
+
+def pinterest_load():
+    data = {}
+    try:
+        with open(PINTEREST_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f) or {}
+    except Exception:
+        data = {}
+    if not data.get('app_id'):
+        data['app_id'] = (os.environ.get('PINTEREST_APP_ID') or '').strip()
+    if not data.get('app_secret'):
+        data['app_secret'] = (os.environ.get('PINTEREST_APP_SECRET') or '').strip()
+    if not data.get('redirect_uri'):
+        data['redirect_uri'] = (os.environ.get('PINTEREST_REDIRECT_URI') or PINTEREST_DEFAULT_REDIRECT).strip()
+    return data
+
+
+def pinterest_save(data):
+    os.makedirs(KEY_DIR, mode=0o700, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix='.pinterest-', dir=KEY_DIR)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, PINTEREST_FILE)
+    finally:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
+
+
+def pinterest_status():
+    cfg = pinterest_load()
+    now = time.time()
+    return {
+        'configured': bool(cfg.get('app_id') and cfg.get('app_secret')),
+        'connected': bool(cfg.get('access_token') or cfg.get('refresh_token')),
+        'appId': cfg.get('app_id') or '',
+        'redirectUri': cfg.get('redirect_uri') or PINTEREST_DEFAULT_REDIRECT,
+        'expiresAt': int(cfg.get('expires_at') or 0),
+        'now': int(now),
+        'scopes': PINTEREST_SCOPES
+    }
+
+
+def pinterest_apply_token(data, cfg=None):
+    cfg = cfg or pinterest_load()
+    if not isinstance(data, dict) or not data.get('access_token'):
+        raise PinterestError('Pinterest 没有返回 access token', 502)
+    cfg['access_token'] = data.get('access_token') or cfg.get('access_token') or ''
+    if data.get('refresh_token'):
+        cfg['refresh_token'] = data.get('refresh_token')
+    try:
+        cfg['expires_at'] = time.time() + int(data.get('expires_in') or 3600)
+    except Exception:
+        cfg['expires_at'] = time.time() + 3600
+    if data.get('scope'):
+        cfg['scope'] = data.get('scope')
+    pinterest_save(cfg)
+    return cfg
+
+
+def pinterest_token_request(cfg, form):
+    app_id = (cfg.get('app_id') or '').strip()
+    secret = (cfg.get('app_secret') or '').strip()
+    if not app_id or not secret:
+        raise PinterestError('先填写 Pinterest App ID 和 App Secret', 400)
+    body = urlencode(form).encode('utf-8')
+    auth = base64.b64encode((app_id + ':' + secret).encode('utf-8')).decode('ascii')
+    req = urllib.request.Request(PINTEREST_TOKEN_URL, data=body, headers={
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': 'Basic ' + auth
+    }, method='POST')
+    try:
+        with urllib.request.urlopen(req, timeout=45, context=SSL_CONTEXT) as resp:
+            raw = resp.read()
+    except urllib.error.HTTPError as e:
+        try:
+            err = json.loads(e.read().decode('utf-8', 'replace'))
+            msg = err.get('message') or err.get('error') or err.get('error_description') or ('HTTP %d' % e.code)
+        except Exception:
+            msg = 'HTTP %d' % e.code
+        raise PinterestError('Pinterest 授权失败：' + str(msg)[:300], 502)
+    except Exception as e:
+        raise PinterestError('连不上 Pinterest：' + str(e)[:240], 502)
+    try:
+        return json.loads(raw.decode('utf-8'))
+    except Exception:
+        raise PinterestError('Pinterest 返回了无效数据', 502)
+
+
+def pinterest_refresh(cfg=None):
+    cfg = cfg or pinterest_load()
+    rt = (cfg.get('refresh_token') or '').strip()
+    if not rt:
+        raise PinterestError('Pinterest 授权已过期，请重新连接', 401)
+    data = pinterest_token_request(cfg, {
+        'grant_type': 'refresh_token',
+        'refresh_token': rt
+    })
+    return pinterest_apply_token(data, cfg)
+
+
+def pinterest_access_token(cfg=None):
+    cfg = cfg or pinterest_load()
+    token = (cfg.get('access_token') or '').strip()
+    expires = float(cfg.get('expires_at') or 0)
+    if token and expires > time.time() + 60:
+        return token, cfg
+    if cfg.get('refresh_token'):
+        cfg = pinterest_refresh(cfg)
+        return (cfg.get('access_token') or '').strip(), cfg
+    raise PinterestError('Pinterest 还没有连接，请先授权', 401)
+
+
+def pinterest_api(path, params=None, retry=True):
+    cfg = pinterest_load()
+    token, cfg = pinterest_access_token(cfg)
+    url = PINTEREST_API_BASE + path
+    if params:
+        url += '?' + urlencode(params)
+    req = urllib.request.Request(url, headers={
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + token,
+        'User-Agent': 'Layoutsmith/1.0'
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=45, context=SSL_CONTEXT) as resp:
+            raw = resp.read()
+    except urllib.error.HTTPError as e:
+        if e.code == 401 and retry and cfg.get('refresh_token'):
+            pinterest_refresh(cfg)
+            return pinterest_api(path, params, False)
+        try:
+            err = json.loads(e.read().decode('utf-8', 'replace'))
+            msg = err.get('message') or err.get('error') or ('HTTP %d' % e.code)
+        except Exception:
+            msg = 'HTTP %d' % e.code
+        status = 401 if e.code in (401, 403) else 502
+        raise PinterestError('Pinterest API 错误：' + str(msg)[:300], status)
+    except Exception as e:
+        raise PinterestError('连不上 Pinterest：' + str(e)[:240], 502)
+    try:
+        return json.loads(raw.decode('utf-8'))
+    except Exception:
+        raise PinterestError('Pinterest 返回了无效数据', 502)
+
+
+def pinterest_auth_url():
+    cfg = pinterest_load()
+    if not cfg.get('app_id') or not cfg.get('app_secret'):
+        raise PinterestError('先填写 Pinterest App ID 和 App Secret', 400)
+    redirect = cfg.get('redirect_uri') or PINTEREST_DEFAULT_REDIRECT
+    if not re.match(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?/api/pinterest/callback$', redirect):
+        raise PinterestError('Redirect URI 必须是 localhost 或 127.0.0.1 的回调地址', 400)
+    now = time.time()
+    for k in list(PINTEREST_STATES.keys()):
+        if now - PINTEREST_STATES[k] > 900:
+            PINTEREST_STATES.pop(k, None)
+    state = secrets.token_urlsafe(24)
+    PINTEREST_STATES[state] = now
+    params = {
+        'client_id': cfg.get('app_id'),
+        'redirect_uri': redirect,
+        'response_type': 'code',
+        'scope': PINTEREST_SCOPES,
+        'state': state
+    }
+    return 'https://www.pinterest.com/oauth/?' + urlencode(params)
+
+
+def pinterest_callback(query):
+    q = parse_qs(query or '')
+    err = (q.get('error') or [''])[0]
+    if err:
+        desc = (q.get('error_description') or [''])[0] or err
+        raise PinterestError('Pinterest 授权被取消或失败：' + desc[:240], 400)
+    state = (q.get('state') or [''])[0]
+    code = (q.get('code') or [''])[0]
+    if not state or state not in PINTEREST_STATES:
+        raise PinterestError('Pinterest 授权状态无效或已过期，请重新点连接', 400)
+    PINTEREST_STATES.pop(state, None)
+    if not code:
+        raise PinterestError('Pinterest 没有返回授权码', 400)
+    cfg = pinterest_load()
+    redirect = cfg.get('redirect_uri') or PINTEREST_DEFAULT_REDIRECT
+    data = pinterest_token_request(cfg, {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': redirect
+    })
+    pinterest_apply_token(data, cfg)
+    return True
+
+
+def pinterest_boards():
+    data = pinterest_api('/boards', {'page_size': 100})
+    items = data.get('items') if isinstance(data, dict) else []
+    out = []
+    for b in (items or []):
+        if not isinstance(b, dict):
+            continue
+        media = b.get('media') if isinstance(b.get('media'), dict) else {}
+        cover = media.get('image_cover_url') or ''
+        thumbs = b.get('pin_thumbnail_urls') if isinstance(b.get('pin_thumbnail_urls'), list) else []
+        if not cover and thumbs:
+            cover = thumbs[0] or ''
+        out.append({
+            'id': b.get('id') or '',
+            'name': b.get('name') or '未命名 Board',
+            'description': b.get('description') or '',
+            'pin_count': b.get('pin_count') or 0,
+            'cover': cover
+        })
+    return out
+
+
+def pinterest_pins(board_id):
+    board_id = str(board_id or '').strip()
+    if not board_id:
+        raise PinterestError('先选择一个 Board', 400)
+    data = pinterest_api('/boards/%s/pins' % quote(board_id, safe=''), {'page_size': 100})
+    items = data.get('items') if isinstance(data, dict) else []
+    out = []
+    for p in (items or []):
+        if not isinstance(p, dict):
+            continue
+        media = p.get('media') if isinstance(p.get('media'), dict) else {}
+        images = media.get('images') if isinstance(media.get('images'), dict) else {}
+        pick = None
+        for key in ('600x', '400x300', '1200x', 'originals', '150x150'):
+            if isinstance(images.get(key), dict) and images[key].get('url'):
+                pick = images[key]
+                break
+        thumb = None
+        for key in ('400x300', '150x150', '600x', 'originals'):
+            if isinstance(images.get(key), dict) and images[key].get('url'):
+                thumb = images[key]
+                break
+        image_url = (pick or {}).get('url') or ''
+        thumb_url = (thumb or {}).get('url') or image_url
+        pid = p.get('id') or ''
+        out.append({
+            'id': pid,
+            'title': p.get('title') or p.get('description') or 'Pinterest Pin',
+            'description': p.get('description') or '',
+            'link': p.get('link') or ('https://www.pinterest.com/pin/%s/' % pid if pid else ''),
+            'image': image_url,
+            'thumb': thumb_url,
+            'width': (pick or {}).get('width') or 0,
+            'height': (pick or {}).get('height') or 0,
+            'board_id': p.get('board_id') or board_id
+        })
+    return out
+
+
+def pinterest_image_bytes(url):
+    p = urlparse(str(url or ''))
+    host = (p.hostname or '').lower()
+    if p.scheme not in ('http', 'https') or not (host == 'pinimg.com' or host.endswith('.pinimg.com')):
+        raise PinterestError('只支持 Pinterest 图片地址', 400)
+    req = urllib.request.Request(url, headers={
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        'Accept': 'image/*'
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
+            ctype = (resp.headers.get('Content-Type') or 'image/jpeg').split(';')[0].strip().lower()
+            if not ctype.startswith('image/'):
+                raise PinterestError('Pinterest 返回的不是图片', 502)
+            blob = resp.read(8_000_000)
+            return blob, ctype
+    except PinterestError:
+        raise
+    except urllib.error.HTTPError as e:
+        raise PinterestError('Pinterest 图片读取失败：HTTP %d' % e.code, 502)
+    except Exception as e:
+        raise PinterestError('Pinterest 图片读取失败：' + str(e)[:200], 502)
+
+
 class _MetaParser(HTMLParser):
     def __init__(self, out):
         super().__init__(convert_charrefs=True)
@@ -172,6 +472,53 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if path == '/api/key':
             self._json_ok({'ok': True, 'hasKey': bool(read_saved_key()), 'envKey': bool(os.environ.get('DEEPSEEK_API_KEY', '').strip())})
             return
+        if path == '/api/pinterest/status':
+            self._json_ok(pinterest_status())
+            return
+        if path == '/api/pinterest/auth':
+            try:
+                self._json_ok({'url': pinterest_auth_url()})
+            except PinterestError as e:
+                self._json_error(e.status, str(e))
+            return
+        if path == '/api/pinterest/callback':
+            self._pinterest_callback(urlparse(self.path).query)
+            return
+        if path == '/api/pinterest/boards':
+            try:
+                self._json_ok({'boards': pinterest_boards()})
+            except PinterestError as e:
+                self._json_error(e.status, str(e))
+            except Exception as e:
+                self._json_error(502, '读取 Pinterest Boards 失败：' + str(e)[:240])
+            return
+        if path == '/api/pinterest/pins':
+            try:
+                q = parse_qs(urlparse(self.path).query)
+                board_id = (q.get('board_id') or [''])[0]
+                self._json_ok({'pins': pinterest_pins(board_id)})
+            except PinterestError as e:
+                self._json_error(e.status, str(e))
+            except Exception as e:
+                self._json_error(502, '读取 Pinterest Pins 失败：' + str(e)[:240])
+            return
+        if path == '/api/pinterest/image':
+            try:
+                q = parse_qs(urlparse(self.path).query)
+                img_url = (q.get('url') or [''])[0]
+                blob, ctype = pinterest_image_bytes(img_url)
+                self.send_response(200)
+                self.send_header('Content-Type', ctype)
+                self.send_header('Content-Length', str(len(blob)))
+                self.send_header('Cache-Control', 'public, max-age=3600')
+                self.send_header('X-Content-Type-Options', 'nosniff')
+                self.end_headers()
+                self.wfile.write(blob)
+            except PinterestError as e:
+                self._json_error(e.status, str(e))
+            except Exception as e:
+                self._json_error(502, '读取 Pinterest 图片失败：' + str(e)[:240])
+            return
         if path == '/__lbcheck__':
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain; charset=utf-8')
@@ -189,7 +536,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split('?')[0]
-        if path not in ('/api/chat', '/api/vision', '/api/key', '/api/link'):
+        if path not in ('/api/chat', '/api/vision', '/api/key', '/api/link', '/api/pinterest/config', '/api/pinterest/disconnect'):
             self.send_error(404)
             return
         try:
@@ -214,6 +561,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if path == '/api/link':
                 self._link(payload)
+                return
+
+            if path == '/api/pinterest/config':
+                self._pinterest_config(payload)
+                return
+
+            if path == '/api/pinterest/disconnect':
+                self._pinterest_disconnect()
                 return
 
             key = (self.headers.get('X-DeepSeek-Key') or '').strip()
@@ -313,6 +668,76 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json_error(500, '代理异常：' + str(e))
             except Exception:
                 pass
+
+    def _pinterest_callback(self, query):
+        try:
+            pinterest_callback(query)
+            title = 'Pinterest 已连接'
+            body = '<p class="ok">Pinterest 已连接，正在返回排版大师…</p><p>如果没有自动关闭，可以关闭这个窗口，回到应用继续。</p>'
+            script = '<script>setTimeout(function(){try{window.close()}catch(e){}},900);</script>'
+            status = 200
+        except PinterestError as e:
+            title = 'Pinterest 连接失败'
+            body = '<p class="err">' + html_escape(str(e)) + '</p><p>回到应用重新点“连接 Pinterest”即可。</p>'
+            script = ''
+            status = e.status if isinstance(e.status, int) and e.status >= 400 else 400
+        html = ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                '<title>' + title + '</title><style>body{font:15px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;background:#f7f9fc;color:#0f172a;margin:0;padding:48px 24px}'
+                '.card{max-width:460px;margin:0 auto;background:#fff;border:1px solid #e5eaf1;border-radius:14px;padding:26px 28px;box-shadow:0 1px 2px rgba(15,23,42,.04)}'
+                'h1{font-size:20px;margin:0 0 12px}.ok{color:#0f8f8e;font-weight:600}.err{color:#b42318;font-weight:600}p{color:#334155}'
+                'a{color:#2457f5;text-decoration:none}</style></head><body><div class="card"><h1>' + title + '</h1>' + body +
+                '<p><a href="http://127.0.0.1:8787/">返回排版大师</a></p></div>' + script + '</body></html>')
+        self.send_response(status)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Cache-Control', 'no-store')
+        self.end_headers()
+        self.wfile.write(html.encode('utf-8'))
+
+    def _pinterest_config(self, payload):
+        if not self._origin_ok():
+            self._json_error(403, '来源不允许')
+            return
+        try:
+            current = pinterest_load()
+            app_id = str(payload.get('appId') or '').strip()
+            app_secret = str(payload.get('appSecret') or '').strip()
+            redirect = str(payload.get('redirectUri') or PINTEREST_DEFAULT_REDIRECT).strip()
+            if not re.match(r'^\d{3,20}$', app_id):
+                self._json_error(400, 'App ID 应该是 Pinterest 的纯数字 ID')
+                return
+            if not re.match(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?/api/pinterest/callback$', redirect):
+                self._json_error(400, 'Redirect URI 必须是 localhost 或 127.0.0.1 的回调地址')
+                return
+            if not app_secret:
+                app_secret = (current.get('app_secret') or '').strip()
+            if not app_secret:
+                self._json_error(400, '请填写 Pinterest App Secret')
+                return
+            changed = (str(current.get('app_id') or '') != app_id or str(current.get('app_secret') or '') != app_secret)
+            cfg = dict(current)
+            cfg['app_id'] = app_id
+            cfg['app_secret'] = app_secret
+            cfg['redirect_uri'] = redirect
+            if changed:
+                for k in ('access_token', 'refresh_token', 'expires_at', 'scope'):
+                    cfg.pop(k, None)
+            pinterest_save(cfg)
+            self._json_ok(pinterest_status())
+        except Exception as e:
+            self._json_error(500, '保存 Pinterest 配置失败：' + str(e)[:240])
+
+    def _pinterest_disconnect(self):
+        if not self._origin_ok():
+            self._json_error(403, '来源不允许')
+            return
+        try:
+            cfg = pinterest_load()
+            for k in ('access_token', 'refresh_token', 'expires_at', 'scope'):
+                cfg.pop(k, None)
+            pinterest_save(cfg)
+            self._json_ok(pinterest_status())
+        except Exception as e:
+            self._json_error(500, '断开 Pinterest 失败：' + str(e)[:240])
 
     def _origin_ok(self):
         origin = (self.headers.get('Origin') or '').strip()

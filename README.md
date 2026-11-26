@@ -175,6 +175,16 @@ Mac 用 ⌘，Windows 用 Ctrl。
 
 ---
 
+## Pinterest（可选）
+
+AI 面板左下角的 Pinterest 按钮会打开 Pins / Boards 选择器：
+
+- App ID：`1644778`（已预填）；
+- 第一次使用，把 Pinterest App 的 **App Secret** 填进本机设置表单，并把 `http://localhost:8787/api/pinterest/callback` 加到 Pinterest App 的 **Configure → Redirect URIs**；
+- 点“连接 Pinterest”完成 OAuth 后，可以按 Board 浏览、选图，把图片加入 AI 参考；
+- App Secret / token 只保存在本机 `.layoutsmith/pinterest.json`（权限 600），不会进入 GitHub 仓库；
+- 选图会占用 AI 参考名额（当前上限 6 个）；Pinterest 只读，不发布内容。
+
 ## 连不上 DeepSeek / 公司代理证书
 
 如果报 `CERTIFICATE_VERIFY_FAILED` 或 `self signed certificate in certificate chain`，通常是 Python 自带的 CA 链不完整，不是 DeepSeek 挂了。启动器现在按主流 agent 的做法使用**操作系统信任链**，不关闭证书校验：

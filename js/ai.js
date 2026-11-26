@@ -946,6 +946,22 @@
     renderAttachments();
   }
 
+  function addPinterestImage(name, dataUrl) {
+    if (!dataUrl) return Promise.resolve(false);
+    if (S.attachments.length >= ATTACH_MAX) {
+      LS.toast('最多 ' + ATTACH_MAX + ' 个参考', 'warn');
+      return Promise.resolve(false);
+    }
+    return Promise.all([shrinkImage(dataUrl, 1400, 0.86), shrinkImage(dataUrl, 240, 0.78)]).then(function (r) {
+      addAttachment({
+        id: aid(), kind: 'image', name: name || 'Pinterest Pin',
+        title: name || 'Pinterest Pin', data: r[0].data, thumb: r[1].data,
+        w: r[0].w, h: r[0].h, size: 0
+      });
+      return true;
+    }).catch(function () { return false; });
+  }
+
   function addLinkPrompt() {
     LS.prompt({
       title: '添加链接参考',
@@ -998,9 +1014,17 @@
     });
   }
 
-  function openPinterest() {
+  function openPinterestProfile() {
     if (!S.pinterestUrl) { setPinterestUrl(true); return; }
     window.open(S.pinterestUrl, '_blank', 'noopener');
+  }
+
+  function openPinterest(settings) {
+    if (window.LS.pinterest && typeof LS.pinterest.open === 'function') {
+      LS.pinterest.open(!!settings);
+      return;
+    }
+    openPinterestProfile();
   }
 
   function setPinterestUrl(openAfter) {
@@ -1025,8 +1049,10 @@
   function pinterestMenu() {
     var b = $('#ai-pinterest-more');
     var r = b.getBoundingClientRect();
-    LS.menu(r.right - 210, r.bottom + 4, [
-      { label: '打开我的 Pinterest', icon: 'link', action: openPinterest },
+    LS.menu(r.right - 230, r.bottom + 4, [
+      { label: '从 Pinterest 选择', icon: 'image', action: function () { openPinterest(false); } },
+      { label: 'Pinterest 账号 / 设置', icon: 'settings', action: function () { openPinterest(true); } },
+      { label: '打开我的 Pinterest', icon: 'link', action: openPinterestProfile },
       { label: '添加 Pin 链接参考', icon: 'image', action: addLinkPrompt },
       { label: '设置我的 Pinterest 主页', icon: 'settings', action: function () { setPinterestUrl(false); } }
     ]);
@@ -3225,6 +3251,8 @@
     insert: insert,
     showSample: showSample,
     checkProxy: checkProxy,
+    addPinterestImage: addPinterestImage,
+    attachmentMax: ATTACH_MAX,
     state: S
   };
 })(window.LS);
