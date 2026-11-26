@@ -18,7 +18,7 @@
   };
 
   var SHAPE_TOOLS = ['rect', 'ellipse', 'polygon', 'line'];
-  var HIST_PROPS = ['lsName', 'lsLocked', 'lsArtboard', 'lsArtboardId', 'lsSides', 'lsStar'];
+  var HIST_PROPS = ['lsName', 'lsLocked', 'lsArtboard', 'lsArtboardId', 'lsSides', 'lsStar', 'lsClipArtboardId'];
 
   function $(s) { return LS.$(s); }
   function canvas() { return S.canvas; }
@@ -827,6 +827,7 @@
     if (patch.w != null) ab.set('width', Math.max(1, patch.w));
     if (patch.h != null) ab.set('height', Math.max(1, patch.h));
     ab.setCoords();
+    syncClipsToBoard(ab);
     S.canvas.requestRenderAll();
     commitSoon(); markDirty(); refreshUI(); drawRulers();
   }
@@ -860,6 +861,7 @@
       it.o.set({ left: it.left + dx, top: it.top + dy });
       it.o.setCoords();
     });
+    shiftClipsForBoard(ab.lsArtboardId, dx, dy);
     S.canvas.requestRenderAll();
     drawRulers();
     drawOverlay();
@@ -999,6 +1001,100 @@
     }).map(function (o) { return { o: o, left: o.left, top: o.top }; });
   }
 
+  function makeBoardClip(ab) {
+    var cp = new fabric.Rect({
+      left: ab.left, top: ab.top, width: ab.width, height: ab.height,
+      originX: 'left', originY: 'top', absolutePositioned: true,
+      fill: '#000000', stroke: null, selectable: false, evented: false
+    });
+    cp.lsClipArtboardId = ab.lsArtboardId;
+    return cp;
+  }
+
+  function boardForObject(o) {
+    if (!o || !S.canvas) return null;
+    var b = o.getBoundingRect(true);
+    var best = null, bestArea = 0;
+    artboards().forEach(function (ab) {
+      var x1 = Math.max(b.left, ab.left);
+      var y1 = Math.max(b.top, ab.top);
+      var x2 = Math.min(b.left + b.width, ab.left + ab.width);
+      var y2 = Math.min(b.top + b.height, ab.top + ab.height);
+      var area = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+      if (area > bestArea) { bestArea = area; best = ab; }
+    });
+    return bestArea > 0 ? best : null;
+  }
+
+  function shiftClipsForBoard(id, dx, dy) {
+    if (!id || (!dx && !dy)) return;
+    objects().forEach(function (o) {
+      var cp = o.clipPath;
+      if (cp && cp.lsClipArtboardId === id) {
+        cp.set({ left: (cp.left || 0) + dx, top: (cp.top || 0) + dy });
+        cp.setCoords();
+        o.set('dirty', true);
+      }
+    });
+  }
+
+  function syncClipsToBoard(ab) {
+    if (!ab) return;
+    objects().forEach(function (o) {
+      var cp = o.clipPath;
+      if (cp && cp.lsClipArtboardId === ab.lsArtboardId) {
+        cp.set({ left: ab.left, top: ab.top, width: ab.width, height: ab.height });
+        cp.setCoords();
+        o.set('dirty', true);
+      }
+    });
+  }
+
+  function clipSelectionToArtboard() {
+    if (!S.canvas) return 0;
+    var objs = S.canvas.getActiveObjects().filter(function (o) { return !o.lsArtboard; });
+    if (!objs.length) { LS.toast('先选中要裁切的元素', 'warn'); return 0; }
+    var active = activeArtboard();
+    var done = 0;
+    objs.forEach(function (o) {
+      var ab = boardForObject(o) || active;
+      if (!ab) return;
+      o.clipPath = makeBoardClip(ab);
+      o.set('dirty', true);
+      o.setCoords();
+      done++;
+    });
+    if (!done) { LS.toast('没找到元素所在的画板，先把元素放到画板内再裁切', 'warn', 3600); return 0; }
+    S.canvas.requestRenderAll();
+    commitNow();
+    markDirty();
+    refreshUI();
+    LS.toast('已裁切到画板：画板外的部分会隐藏 · ⌘Z 撤销', 'ok', 3600);
+    return done;
+  }
+
+  function unclipSelection() {
+    if (!S.canvas) return 0;
+    var objs = S.canvas.getActiveObjects().filter(function (o) { return !o.lsArtboard; });
+    var done = 0;
+    objs.forEach(function (o) {
+      if (o.clipPath) {
+        o.clipPath = null;
+        o.set('dirty', true);
+        o.setCoords();
+        done++;
+      }
+    });
+    if (done) {
+      S.canvas.requestRenderAll();
+      commitNow();
+      markDirty();
+      refreshUI();
+      LS.toast('已取消画板裁切', 'ok');
+    }
+    return done;
+  }
+
   function snapBoardDrag(d, dx, dy) {
     if (!S.snap) return { dx: dx, dy: dy };
     var th = 6 / Math.max(0.02, S.zoom);
@@ -1034,7 +1130,12 @@
     setActiveArtboard(ab.lsArtboardId, { noFit: true, silent: true });
     S.artboardDrag = {
       ab: ab, startX: p.x, startY: p.y, baseLeft: ab.left, baseTop: ab.top,
-      objs: boardContents(ab), dx: 0, dy: 0, moved: false
+      objs: boardContents(ab), dx: 0, dy: 0, moved: false,
+      clips: objects().filter(function (o) {
+        return o.clipPath && o.clipPath.lsClipArtboardId === ab.lsArtboardId;
+      }).map(function (o) {
+        return { o: o, cp: o.clipPath, left: o.clipPath.left || 0, top: o.clipPath.top || 0 };
+      })
     };
     S.canvas.selection = false;
     S.canvas.skipTargetFind = true;
@@ -1061,6 +1162,11 @@
     d.objs.forEach(function (it) {
       it.o.set({ left: it.left + dx, top: it.top + dy });
       it.o.setCoords();
+    });
+    (d.clips || []).forEach(function (c) {
+      c.cp.set({ left: c.left + dx, top: c.top + dy });
+      c.cp.setCoords();
+      c.o.set('dirty', true);
     });
     S.canvas.requestRenderAll();
     drawRulers();
@@ -2196,6 +2302,8 @@
     updateArtboard: updateArtboard,
     deleteArtboard: deleteArtboard,
     moveArtboardTo: moveArtboardTo,
+    clipSelectionToArtboard: clipSelectionToArtboard,
+    unclipSelection: unclipSelection,
     setTool: setTool,
     setZoom: setZoom,
     fitArtboard: fitArtboard,

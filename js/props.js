@@ -399,6 +399,16 @@
         '<p class="ab-prop-note" style="margin-top:8px">图片按原始像素置入，缩放不会降低导出清晰度。</p></div>';
     }
 
+    // 画板裁切
+    var clipped = objs.some(function (o) { return o.clipPath && o.clipPath.lsClipArtboardId; });
+    html2 += '<div class="psec"><div class="psec-head">' + icon('frame') + '画板裁切' +
+      '<span class="right tiny-label">' + (clipped ? '已裁切' : '未裁切') + '</span></div>' +
+      '<p class="ab-prop-note">只显示画板范围内的部分；画板移动时裁切框会跟着画板。适合让大图 / 光效只出现在当前画板里。</p>' +
+      '<div class="grid2" style="margin-top:8px">' +
+      '<button class="btn btn-sm" data-act="clipBoard">' + icon('frame') + '裁切到画板</button>' +
+      '<button class="btn btn-sm" data-act="clipBoardOff"' + (clipped ? '' : ' disabled') + '>' + icon('eye') + '取消裁切</button>' +
+      '</div></div>';
+
     // 透明度 / 混合
     html2 += '<div class="psec"><div class="psec-head">' + icon('eye') + '透明度</div>' +
       '<div style="display:flex;align-items:center;gap:8px"><input type="range" data-p="opacityRange" min="0" max="100" value="' + Math.round((objs[0].opacity == null ? 1 : objs[0].opacity) * 100) + '">' +
@@ -917,6 +927,8 @@
       case 'imgFit': fitImage(false); break;
       case 'imgCover': fitImage(true); break;
       case 'imgReplace': replaceImage(); break;
+      case 'clipBoard': ed.clipSelectionToArtboard(); renderProps(); break;
+      case 'clipBoardOff': ed.unclipSelection(); renderProps(); break;
       default: break;
     }
   }
