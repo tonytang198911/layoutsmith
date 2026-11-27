@@ -251,6 +251,8 @@
           '<button class="btn btn-sm" data-act="exportArtboard">' + icon('download') + '导出此画板</button>' +
           '<button class="btn btn-sm btn-danger" data-act="delArtboard"' + (abLocked ? ' disabled' : '') + '>' + icon('trash') + '删除画板</button>' +
           '</div>' +
+          '<button class="btn btn-sm btn-block" style="margin-top:6px" data-act="unlockBoardLayers"' + (abLocked ? ' disabled' : '') + '>' + icon('unlock') + '解除此画板图层锁定</button>' +
+          '<p class="ab-prop-note" style="margin-top:6px">如果画板已经解锁、但图层还是不能动，点这里修复单个图层的锁定状态。</p>' +
           '<p class="ab-prop-note" style="margin-top:8px">共 ' + abs.length + ' 个画板 · 画板外内容不会被导出</p>' +
           '</div>';
       } else {
@@ -855,6 +857,7 @@
       case 'delete': ed.deleteSelection(); break;
       case 'duplicate': ed.duplicateSelection(); break;
       case 'lockArtboard': { var abL = ed.activeArtboard(); if (abL) ed.toggleArtboardLock(abL.lsArtboardId); renderProps(); break; }
+      case 'unlockBoardLayers': ed.unlockBoardLayers(); renderProps(); break;
       case 'group': ed.groupSelection(); break;
       case 'ungroup': ed.ungroupSelection(); break;
       case 'flipH': ed.flip('h'); break;

@@ -18,7 +18,7 @@
   };
 
   var SHAPE_TOOLS = ['rect', 'ellipse', 'polygon', 'line'];
-  var HIST_PROPS = ['lsName', 'lsLocked', 'lsArtboard', 'lsArtboardId', 'lsSides', 'lsStar', 'lsClipArtboardId', 'lsBoardLocked'];
+  var HIST_PROPS = ['lsName', 'lsLocked', 'lsArtboard', 'lsArtboardId', 'lsSides', 'lsStar', 'lsClipArtboardId', 'lsBoardLocked', 'lsBoardId'];
 
   function $(s) { return LS.$(s); }
   function canvas() { return S.canvas; }
@@ -144,6 +144,10 @@
         o.set({ selectable: false, evented: false, hasControls: false });
       } else {
         if (!o.lsName) o.lsName = nameFor(o);
+        if (!o.lsBoardId) {
+          var ownerAb = activeArtboard() || owningBoardFor(o);
+          if (ownerAb) o.lsBoardId = ownerAb.lsArtboardId;
+        }
         applyLock(o);
         if (!o.selectable && S.canvas.getActiveObject() === o) S.canvas.discardActiveObject();
       }
@@ -1688,17 +1692,35 @@
     return base + ' ' + n;
   }
 
+  function owningBoardFor(obj) {
+    if (!obj || obj.lsArtboard || !S.canvas) return null;
+    if (obj.lsBoardId) {
+      var owner = artboards().filter(function (a) { return a.lsArtboardId === obj.lsBoardId; })[0];
+      if (owner) return owner;
+    }
+    var b = obj.getBoundingRect(true);
+    var cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    var containing = artboards().filter(function (ab) {
+      return cx >= ab.left && cx <= ab.left + ab.width && cy >= ab.top && cy <= ab.top + ab.height;
+    });
+    if (containing.length) {
+      containing.sort(function (a, b2) { return a.width * a.height - b2.width * b2.height; });
+      return containing[0];
+    }
+    var best = null, bestArea = 0;
+    artboards().forEach(function (ab) {
+      var x1 = Math.max(b.left, ab.left), y1 = Math.max(b.top, ab.top);
+      var x2 = Math.min(b.left + b.width, ab.left + ab.width), y2 = Math.min(b.top + b.height, ab.top + ab.height);
+      var area = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+      if (area > bestArea) { bestArea = area; best = ab; }
+    });
+    return best;
+  }
+
   function boardLockedFor(obj) {
     if (!obj || obj.lsArtboard || !S.canvas) return false;
-    var b = obj.getBoundingRect(true);
-    return artboards().some(function (ab) {
-      if (!ab.lsBoardLocked) return false;
-      var x1 = Math.max(b.left, ab.left);
-      var y1 = Math.max(b.top, ab.top);
-      var x2 = Math.min(b.left + b.width, ab.left + ab.width);
-      var y2 = Math.min(b.top + b.height, ab.top + ab.height);
-      return x2 > x1 && y2 > y1;
-    });
+    var owner = owningBoardFor(obj);
+    return !!(owner && owner.lsBoardLocked);
   }
 
   function applyLock(obj) {
@@ -1735,6 +1757,36 @@
     refreshUI();
     LS.toast(ab.lsBoardLocked ? '画板已锁定：图层不可选中、移动或修改' : '画板已解锁，可以继续编辑', ab.lsBoardLocked ? 'ok' : 'ok', 3200);
     return ab.lsBoardLocked;
+  }
+
+  function unlockBoardLayers() {
+    var ab = activeArtboard();
+    if (!ab) return 0;
+    if (ab.lsBoardLocked) {
+      LS.toast('画板本身还是锁定状态，先点「解锁画板」', 'warn', 3600);
+      return 0;
+    }
+    var n = 0;
+    boardContents(ab).forEach(function (it) {
+      var o = it.o;
+      if (o.lsLocked || o.selectable === false || o.lsBoardLockId || o.lsBoardId !== ab.lsArtboardId) {
+        o.lsLocked = false;
+        o.lsBoardLockId = '';
+        o.lsBoardId = ab.lsArtboardId;
+        applyLock(o);
+        n++;
+      }
+    });
+    if (!n) {
+      LS.toast('这个画板的图层没有被单独锁定', 'ok', 2600);
+      return 0;
+    }
+    S.canvas.requestRenderAll();
+    commitNow();
+    markDirty();
+    refreshUI();
+    LS.toast('已解除此画板 ' + n + ' 个图层的锁定', 'ok', 3400);
+    return n;
   }
 
   function deleteSelection() {
@@ -2391,6 +2443,7 @@
     deleteArtboard: deleteArtboard,
     moveArtboardTo: moveArtboardTo,
     toggleArtboardLock: toggleArtboardLock,
+    unlockBoardLayers: unlockBoardLayers,
     isBoardLocked: boardLockedFor,
     clipSelectionToArtboard: clipSelectionToArtboard,
     unclipSelection: unclipSelection,
