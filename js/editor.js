@@ -2108,7 +2108,21 @@
           }
         }
       }
+      // Safari / 某些剪贴板只暴露 files，不暴露 items
+      var files = e.clipboardData && e.clipboardData.files;
+      if (files && files.length) {
+        for (var j = 0; j < files.length; j++) {
+          if (files[j].type && files[j].type.indexOf('image/') === 0) {
+            e.preventDefault();
+            var ab2 = activeArtboard() || { left: 0, top: 0, width: 1000, height: 1000 };
+            insertImageFile(files[j], { x: ab2.left + ab2.width / 2, y: ab2.top + ab2.height / 2 });
+            return;
+          }
+        }
+      }
     });
+
+    $('#btn-paste').addEventListener('click', pasteFromClipboard);
 
     $('#file-image').addEventListener('change', function (e) {
       var files = Array.prototype.slice.call(e.target.files || []);
@@ -2195,6 +2209,38 @@
       };
       reader.onerror = function () { LS.toast('读取图片失败', 'err'); resolve(null); };
       reader.readAsDataURL(file);
+    });
+  }
+
+  function pasteFromClipboard() {
+    var ab = activeArtboard();
+    if (!ab) { LS.toast('先选中一个画板，再粘贴截图', 'warn', 3600); return; }
+    var at = { x: ab.left + ab.width / 2, y: ab.top + ab.height / 2 };
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+      LS.toast('这个浏览器不支持直接读剪贴板。Mac 截图请按 ⌃⌘⇧4 复制，然后点一下画布按 ⌘V；或把截图文件拖进来。', 'warn', 6200);
+      return;
+    }
+    navigator.clipboard.read().then(function (items) {
+      var imageItem = null, imageType = '';
+      (items || []).some(function (item) {
+        var types = item.types || [];
+        for (var i = 0; i < types.length; i++) {
+          if (/^image\//.test(types[i])) { imageItem = item; imageType = types[i]; return true; }
+        }
+        return false;
+      });
+      if (!imageItem) {
+        LS.toast('剪贴板里没有图片。Mac 截图请按 ⌃⌘⇧4 复制到剪贴板，或把截图文件直接拖进画布。', 'warn', 6200);
+        return;
+      }
+      imageItem.getType(imageType).then(function (blob) {
+        var ext = (imageType.split('/')[1] || 'png').replace('jpeg', 'jpg');
+        var file = new File([blob], '粘贴截图.' + ext, { type: imageType });
+        LS.toast('正在粘贴截图…');
+        insertImageFile(file, at);
+      });
+    }).catch(function (err) {
+      LS.toast('读取剪贴板失败：' + ((err && err.message) || err) + '。请允许剪贴板权限，或用拖入图片。', 'err', 6200);
     });
   }
 
@@ -2379,6 +2425,7 @@
     applyLock: applyLock,
     insertImageFile: insertImageFile,
     insertImageURL: insertImageURL,
+    pasteFromClipboard: pasteFromClipboard,
     togglePreview: togglePreview,
     clearGuides: clearGuides,
     deleteSelectedGuide: deleteSelectedGuide,

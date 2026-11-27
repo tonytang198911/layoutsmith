@@ -7,7 +7,7 @@
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f172a'/%3E%3Crect x='7' y='7' width='12' height='12' rx='2' fill='%237ea2ff'/%3E%3Crect x='16' y='17' width='9' height='9' rx='2' fill='%230f8f8e'/%3E%3C/svg%3E">
 <title>排版大师 · Layoutsmith</title>
-<link rel="stylesheet" href="css/app.css?v=83">
+<link rel="stylesheet" href="css/app.css?v=84">
 </head>
 <body>
 
@@ -92,6 +92,7 @@
       <button class="btn btn-ai" id="btn-ai" title="AI 绘制 (⌘K)"><svg class="i"><use href="#i-spark"></use></svg>AI 绘制</button>
       <button class="icon-btn" id="btn-ai-settings" title="AI 设置（模型 / Key）"><svg class="i"><use href="#i-settings"></use></svg></button>
       <button class="icon-btn toggle" id="btn-preview" title="预览裁切效果 (⇧P)"><svg class="i"><use href="#i-eye"></use></svg></button>
+      <button class="icon-btn" id="btn-paste" title="从剪贴板粘贴截图：Mac 截图请按 ⌃⌘⇧4 复制到剪贴板"><svg class="i"><use href="#i-paperclip"></use></svg></button>
       <button class="btn btn-primary" id="btn-export"><svg class="i"><use href="#i-download"></use></svg>导出</button>
     </div>
     <div class="ai-settings-pop hidden" id="ai-settings-pop">
@@ -162,7 +163,7 @@
       <div class="canvas-wrap" id="canvas-wrap"><canvas id="c"></canvas></div>
       <div class="stage-hint" id="stage-hint">
         <svg class="i"><use href="#i-image"></use></svg>
-        拖入图片 · 双击文字改内容 · 拖画板名/边框移动 · <kbd>空格</kbd> 拖动画布
+        拖入图片 · <kbd>⌃⌘⇧4</kbd> 截图复制后 <kbd>⌘V</kbd> 粘贴 · 双击文字改内容 · 拖画板名/边框移动 · <kbd>空格</kbd> 拖动画布
         <button class="hint-x" id="hint-close" aria-label="关闭提示">×</button>
       </div>
     </section>
@@ -641,19 +642,19 @@
 <script src="js/vendor/fabric.min.js"></script>
 <script src="js/vendor/paper-core.min.js"></script>
 <script src="js/vendor/html2canvas.min.js"></script>
-<script src="js/util.js?v=83"></script>
-<script src="js/store.js?v=83"></script>
-<script src="js/fonts.js?v=83"></script>
-<script src="js/boolean.js?v=83"></script>
-<script src="js/editor.js?v=83"></script>
-<script src="js/props.js?v=83"></script>
-<script src="js/exporter.js?v=83"></script>
+<script src="js/util.js?v=84"></script>
+<script src="js/store.js?v=84"></script>
+<script src="js/fonts.js?v=84"></script>
+<script src="js/boolean.js?v=84"></script>
+<script src="js/editor.js?v=84"></script>
+<script src="js/props.js?v=84"></script>
+<script src="js/exporter.js?v=84"></script>
 <script src="js/vendor/pdf.min.js"></script>
-<script src="js/ai.js?v=83"></script>
-<script src="js/pinterest.js?v=83"></script>
-<script src="js/brand.js?v=83"></script>
-<script src="js/demo.js?v=83"></script>
-<script src="js/home.js?v=83"></script>
-<script src="js/app.js?v=83"></script>
+<script src="js/ai.js?v=84"></script>
+<script src="js/pinterest.js?v=84"></script>
+<script src="js/brand.js?v=84"></script>
+<script src="js/demo.js?v=84"></script>
+<script src="js/home.js?v=84"></script>
+<script src="js/app.js?v=84"></script>
 </body>
 </html>
